@@ -108,13 +108,13 @@ type nul > .env.local
 Paste this into `.env.local` file
 
 ```
-VITE_API_URL=http://127.0.0.1:8000
+VITE_API_URL=http:'django server address'
 ```
 
 4. Start the frontend server
 
 ```
-pnpm dev
+pnpm run dev
 ```
 
 ## 📝 Contributor Notes
