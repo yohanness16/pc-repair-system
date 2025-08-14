@@ -14,16 +14,23 @@ from collections import defaultdict
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
-
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 class PartListCreateView(generics.ListCreateAPIView):
     queryset = Part.objects.all()
     serializer_class = PartSerializer
     permission_classes = [permissions.IsAuthenticated]
+@swagger_auto_schema(
+        request_body=PartSerializer,
+        responses={201: PartSerializer, 400: 'Bad Request'}
+    )
+
 
 class PartDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Part.objects.all()
     serializer_class = PartSerializer
     permission_classes = [permissions.IsAuthenticated]
+    
 
 class PartViewSet(viewsets.ModelViewSet):
     queryset = Part.objects.all()
@@ -34,6 +41,11 @@ class RepairRequestCreateView(generics.CreateAPIView):
     queryset = Repair.objects.all()
     serializer_class = RepairCreateSerializer
     permission_classes = [permissions.IsAuthenticated, IsStaffOrAdmin]
+    @swagger_auto_schema(
+        request_body=RepairCreateSerializer,
+        responses={201: RepairCreateSerializer , 400: 'Bad Request'}
+    )
+
 
     def perform_create(self, serializer):
         serializer.save()
@@ -47,12 +59,21 @@ class RepairApprovalView(generics.UpdateAPIView):
 class CompleteRepairView(generics.UpdateAPIView):
     queryset = Repair.objects.all()
     serializer_class = CompleteRepairSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAssignedRepairStaff]
     lookup_field = 'pk'
 
+    permission_classes = [permissions.IsAuthenticated, IsAssignedRepairStaff]
+@swagger_auto_schema(
+        request_body=CompleteRepairSerializer,
+        responses={200: CompleteRepairSerializer, 400: 'Bad Request'}
+    )
+    
 class EquipmentRepairHistoryView(generics.ListAPIView):
     serializer_class = RepairHistorySerializer
     permission_classes = [permissions.IsAuthenticated]
+    @swagger_auto_schema(
+        request_body=RepairHistorySerializer,
+        responses={200: RepairHistorySerializer, 400: 'Bad Request'}
+    )
 
     def get_queryset(self):
         
@@ -73,6 +94,63 @@ class EquipmentRepairHistoryView(generics.ListAPIView):
     
 class AdminRepairStatsView(APIView):
     permission_classes = [IsAuthenticated]  
+    @swagger_auto_schema(
+        operation_description="Get detailed repair statistics for admins",
+        responses={
+            200: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    "monthly_repairs": openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            "labels": openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Items(type=openapi.TYPE_STRING)),
+                            "values": openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Items(type=openapi.TYPE_INTEGER)),
+                        }
+                    ),
+                    "top_repair_staff": openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            "labels": openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Items(type=openapi.TYPE_STRING)),
+                            "values": openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Items(type=openapi.TYPE_INTEGER)),
+                        }
+                    ),
+                    "repairs_by_branch": openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            "labels": openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Items(type=openapi.TYPE_STRING)),
+                            "values": openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Items(type=openapi.TYPE_INTEGER)),
+                        }
+                    ),
+                    "top_used_parts": openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            "labels": openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Items(type=openapi.TYPE_STRING)),
+                            "values": openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Items(type=openapi.TYPE_INTEGER)),
+                        }
+                    ),
+                    "branch_wise_part_usage": openapi.Schema(
+                        type=openapi.TYPE_ARRAY,
+                        items=openapi.Items(
+                            type=openapi.TYPE_OBJECT,
+                            properties={
+                                "part": openapi.Schema(type=openapi.TYPE_STRING),
+                                "branches": openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Items(type=openapi.TYPE_STRING)),
+                                "quantities": openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Items(type=openapi.TYPE_INTEGER)),
+                            }
+                        )
+                    ),
+                    "staff_workload": openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            "labels": openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Items(type=openapi.TYPE_STRING)),
+                            "values": openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Items(type=openapi.TYPE_INTEGER)),
+                        }
+                    ),
+                }
+            )
+        }
+    )
+
 
     def get(self, request):
         repairs = Repair.objects.annotate(month=TruncMonth('created_at')) \

@@ -70,7 +70,7 @@ class CompleteRepairSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Repair
-        fields = ['status', 'report', 'parts']
+        fields = ['status', 'report', 'parts' ,'remark']
 
     def validate_status(self, value):
         if value != 'completed':

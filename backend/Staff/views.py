@@ -8,13 +8,20 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 from .models import Staff
 from rest_framework.permissions import IsAuthenticated
+from drf_yasg.utils import swagger_auto_schema
 
 
  
 
 
 class RegisterView(APIView):
+
     permission_classes = [permissions.IsAuthenticated]
+
+    @swagger_auto_schema(
+        request_body=RegisterSerializer,
+        responses={201: RegisterSerializer, 400: 'Bad Request'}
+    )
     def post(self, request):
         user = request.user
         if user.role != 'admin':
@@ -40,6 +47,10 @@ class PingView(APIView):
 
 class LogoutView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+    @swagger_auto_schema(
+        request_body=None,
+        responses={205: 'Logout successful', 400: 'Bad Request'}
+    )
 
     def post(self, request):
         try:
@@ -55,6 +66,11 @@ class LogoutView(APIView):
 class UpdateProfileView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @swagger_auto_schema(
+        request_body=UpdateProfileSerializer,
+        responses={200: 'Profile updated successfully', 400: 'Bad Request'}
+    )
+
     def put(self, request):
         user = request.user
         serializer = UpdateProfileSerializer(user, data=request.data, context={'request': request})
@@ -65,6 +81,10 @@ class UpdateProfileView(APIView):
     
 class ForgotPasswordView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+    @swagger_auto_schema(
+        request_body=ForgotPasswordSerializer,
+        responses={200: 'Password reset successfully', 400: 'Bad Request'}
+    )
 
     def post(self, request):
         user = request.user
@@ -79,6 +99,10 @@ class ForgotPasswordView(APIView):
     
 class RequestPasswordResetView(APIView):
     permission_classes = []  
+    @swagger_auto_schema(
+        request_body=RequestPasswordResetSerializer,
+        responses={200: 'Reset code sent to email', 400: 'Bad Request'}
+    )
 
     def post(self, request):
         serializer = RequestPasswordResetSerializer(data=request.data)
@@ -88,7 +112,11 @@ class RequestPasswordResetView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 class VerifyResetCodeView(APIView):
-    permission_classes = []  
+    permission_classes = [] 
+    @swagger_auto_schema(
+        request_body=VerifyResetCodeSerializer,
+        responses={200: 'Password reset successfully', 400: 'Bad Request'}
+    ) 
 
     def post(self, request):
         serializer = VerifyResetCodeSerializer(data=request.data)
