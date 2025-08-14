@@ -17,8 +17,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             'role',
         ]
         extra_kwargs = {
-            'password': {'write_only': True}
-            
+            'password': {'write_only': True}       
         }
 
     def create(self, validated_data):
@@ -149,3 +148,4 @@ class VerifyResetCodeSerializer(serializers.Serializer):
         self.user.set_password(self.validated_data['new_password'])
         self.user.save()
         PasswordResetCode.objects.filter(user=self.user).delete() 
+

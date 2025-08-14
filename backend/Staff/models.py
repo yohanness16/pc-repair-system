@@ -5,15 +5,18 @@ from django.utils import timezone
 from datetime import timedelta
 
 
+
 def email_validator(value):
     if not value.endswith('@gmail.com'):
-        raise ValidationError("Invalid email. It must end with '@cbe.et'")
+        raise ValidationError("Invalid email. It must end with '@gmail.et'")
 
 class Staff(AbstractUser):
     ROLE_CHOICES = [
         ('admin', 'Admin'),
         ('staff', 'Staff'),
     ]
+
+
     
     email = models.EmailField(unique=True, validators=[email_validator])
     role = models.CharField(max_length=25, choices=ROLE_CHOICES)
