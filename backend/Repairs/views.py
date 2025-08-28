@@ -20,6 +20,7 @@ from drf_yasg import openapi
 from django.template.loader import render_to_string
 from weasyprint import HTML
 
+
 class PartListCreateView(generics.ListCreateAPIView):
     queryset = Part.objects.all()
     serializer_class = PartSerializer
