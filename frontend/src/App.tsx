@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DataProvider } from './context/DataContext';
@@ -57,6 +58,6 @@ function App() {
       </DataProvider>
     </AuthProvider>
   );
-}
+
 
 export default App;

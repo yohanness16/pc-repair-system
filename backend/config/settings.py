@@ -1,6 +1,8 @@
 import os
 from decouple import config, Csv
 from pathlib import Path 
+from datetime import timedelta
+from django.core.mail import send_mail
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -21,8 +23,16 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     "rest_framework",
+    'rest_framework.authtoken',
+    'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
+    'django_extensions',
     "corsheaders",
-    "users",
+    'Staff',
+    'Repairs',
+    'Equipments',
+    'drf_yasg',
+
 ]
 
 MIDDLEWARE = [
@@ -65,14 +75,55 @@ DATABASES = {
 }
 
 
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'            
+EMAIL_PORT = 587                         
+EMAIL_USE_TLS = True                    
+EMAIL_HOST_USER = 'yohanness1621@gmail.com'  
+EMAIL_HOST_PASSWORD = 'hnvu dygg znua erzn' 
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+
+
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-    )
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',  
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',  
+    ),
+    'DEFAULT_FILTER_BACKENDS': (
+        'rest_framework.filters.OrderingFilter',
+        'rest_framework.filters.SearchFilter',
+        'django_filters.rest_framework.DjangoFilterBackend', 
+    ),
+}
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'Bearer': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header',
+            'description': "JWT Authorization header using the Bearer scheme. Example: 'Bearer {token}'",
+        }
+    },
 }
 
+
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),  
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=60),     
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+}
+
+
+
 CORS_ALLOW_ALL_ORIGINS = True
-AUTH_USER_MODEL = "users.User"
+AUTH_USER_MODEL = "Staff.Staff"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
