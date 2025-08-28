@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Repair Receipt - {{ repair.id }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; font-size: 12px; }
+        h2 { text-align: center; }
+        .details { margin: 20px 0; }
+        .details p { margin: 4px 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #333; padding: 8px; text-align: left; }
+        th { background-color: #f0f0f0; }
+        .signature { margin-top: 50px; width: 100%; display: flex; justify-content: space-between; }
+        .signature div { width: 40%; text-align: center; }
+        .signature-line { border-top: 1px solid #000; margin-top: 50px; }
+    </style>
+</head>
+<body>
+    <h1>Commercial Bank Of ethiopia</h1>
+    <h2>pc-Repair Receipt</h2>
+
+    <div class="details">
+        <p><strong>Receipt ID:</strong> {{ repair.id }}</p>
+        <p><strong>Equipment:</strong> {{ repair.equipment.tag_number }} ({{ repair.equipment.serial_number }})</p>
+        <p><strong>Branch:</strong> {{ repair.equipment.branch.name }}</p>
+        <p><strong>Repair Staff:</strong> 
+            {% if repair.repair_staff %}
+                {{ repair.repair_staff.first_name }} {{ repair.repair_staff.last_name }}
+            {% else %}
+                -
+            {% endif %}
+        </p>
+        <p><strong>Status:</strong> {{ repair.status }}</p>
+        <p><strong>Remark:</strong> {{ repair.remark|default:"-" }}</p>
+        <p><strong>Report:</strong> {{ repair.report|default:"-" }}</p>
+        <p><strong>Completed At:</strong> {{ repair.completed_at|date:"Y-m-d H:i" }}</p>
+        <p><strong>Created At:</strong> {{ repair.created_at|date:"Y-m-d H:i" }}</p>
+    </div>
+
+    <h3>Parts Used</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Part</th>
+                <th>Quantity</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for part in repair.repair_parts.all %}
+            <tr>
+                <td>{{ part.part.name }}</td>
+                <td>{{ part.quantity }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="2" style="text-align:center;">No parts used</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="signature">
+        <div>
+            <div class="signature-line"></div>
+            <p>Repair Staff Signature</p>
+        </div>
+        <div>
+            <div class="signature-line"></div>
+            <p>Admin Signature</p>
+        </div>
+    </div>
+</body>
+</html>

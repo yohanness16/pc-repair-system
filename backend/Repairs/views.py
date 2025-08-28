@@ -1,5 +1,6 @@
 
 from rest_framework import generics, permissions
+from django.http import HttpResponse
 from .models import Repair , Part , RepairPart
 from Equipments.models import Equipment
 from .serializers import RepairCreateSerializer , PartSerializer , CompleteRepairSerializer , RepairHistorySerializer , RepairApprovalSerializer
@@ -16,6 +17,9 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from django.template.loader import render_to_string
+from weasyprint import HTML
+
 class PartListCreateView(generics.ListCreateAPIView):
     queryset = Part.objects.all()
     serializer_class = PartSerializer
@@ -232,3 +236,65 @@ class AdminRepairStatsView(APIView):
                "branch_wise_part_usage": branch_wise_part_stats,
                "staff_workload": staff_workload,
         })
+    
+
+class EquipmentRepairPDFView(APIView):
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_description="Download a PDF report of all completed repairs for a specific equipment",
+        manual_parameters=[
+            openapi.Parameter(
+                'equipment_id', openapi.IN_PATH,
+                description="ID of the equipment",
+                type=openapi.TYPE_INTEGER,
+                required=True
+            )
+        ],
+        responses={200: 'PDF file of equipment repair history', 404: 'Equipment not found'}
+    )
+
+    def get(self, request, equipment_id):
+        equipment = get_object_or_404(Equipment, pk=equipment_id)
+        repairs = equipment.repairs.filter(status='completed').order_by('-completed_at')
+
+        html_string = render_to_string('repair_pdf.html', {
+            'equipment': equipment,
+            'repairs': repairs
+        })
+
+        html = HTML(string=html_string)
+        pdf = html.write_pdf()
+
+        response = HttpResponse(pdf, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="equipment_{equipment.tag_number}_repairs.pdf"'
+        return response
+
+
+class RepairReceiptPDFView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_description="Download a PDF receipt for a specific completed repair",
+        manual_parameters=[
+            openapi.Parameter(
+                'repair_id', openapi.IN_PATH,
+                description="ID of the completed repair",
+                type=openapi.TYPE_INTEGER,
+                required=True
+            )
+        ],
+        responses={200: 'PDF file of repair receipt', 404: 'Repair not found or not completed'}
+    )
+    def get(self, request, repair_id):
+        repair = get_object_or_404(Repair, pk=repair_id, status="completed")
+
+        html_string = render_to_string('repair_receipt.html', {
+            'repair': repair
+        })
+
+        html = HTML(string=html_string)
+        pdf = html.write_pdf()
+
+        response = HttpResponse(pdf, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="repair_{repair.id}_receipt.pdf"'
+        return response
