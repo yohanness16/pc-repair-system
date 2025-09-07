@@ -13,7 +13,7 @@ urlpatterns = [
     path('request-reset/', RequestPasswordResetView.as_view(), name='request-reset'),
     path('verify-reset/', VerifyResetCodeView.as_view(), name='verify-reset'),
     path('list/', StaffListView.as_view(), name='staff-list'),
-    path('/<int:staff_id>/repairs/', StaffRepairProgressView.as_view(), name='staff-repair-progress'),
+    path('<int:staff_id>/repairs/', StaffRepairProgressView.as_view(), name='staff-repair-progress'),
 
 
 ]
