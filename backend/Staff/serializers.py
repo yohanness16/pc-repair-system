@@ -3,6 +3,38 @@ from rest_framework import serializers
 from .models import Staff , PasswordResetCode
 import random
 from django.core.mail import send_mail
+from rest_framework import serializers
+from rest_framework.exceptions import APIException
+from .models import Staff
+from django.db import IntegrityError
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    first_name = serializers.CharField()
+    last_name = serializers.CharField()
+    new_password = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        try:
+            user = Staff.objects.get(
+                email=data['email'],
+                first_name=data['first_name'],
+                last_name=data['last_name']
+            )
+        except Staff.DoesNotExist:
+            raise serializers.ValidationError("User not found with the provided information.")
+
+        data['user'] = user
+        return data
+
+    def save(self):
+        user = self.validated_data['user']
+        user.set_password(self.validated_data['new_password'])
+        try:
+            user.save()
+        except IntegrityError as e:
+            raise APIException(f"Failed to reset password: {str(e)}")
+        return user
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -32,19 +64,24 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-
-        
         token['username'] = user.username
         token['role'] = user.role
         return token
 
     def validate(self, attrs):
         data = super().validate(attrs)
-
-        
-        data['username'] = self.user.username
-        data['role'] = self.user.role
+       
+        data.update({
+            'id': self.user.id,
+            'username': self.user.username,
+            'role': self.user.role,
+            'email': self.user.email,
+            'first_name': self.user.first_name,
+            'last_name': self.user.last_name,
+            'profile_photo': self.user.profile_photo.url if self.user.profile_photo else None,
+        })
         return data
+
 
 class UpdateProfileSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False)
@@ -75,6 +112,7 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+
 class ForgotPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField()
     first_name = serializers.CharField()
@@ -97,8 +135,12 @@ class ForgotPasswordSerializer(serializers.Serializer):
     def save(self):
         user = self.validated_data['user']
         user.set_password(self.validated_data['new_password'])
-        user.save()
+        try:
+            user.save()
+        except IntegrityError as e:
+            raise APIException(f"Failed to reset password: {str(e)}")
         return user
+
 
 class RequestPasswordResetSerializer(serializers.Serializer):
     email = serializers.EmailField()
@@ -112,15 +154,17 @@ class RequestPasswordResetSerializer(serializers.Serializer):
 
     def save(self):
         code = ''.join([str(random.randint(0, 9)) for _ in range(6)])
-        PasswordResetCode.objects.create(user=self.user, code=code)
-
-        send_mail(
-            subject='Your Password Reset Code',
-            message=f'Your password reset code is: {code}',
-            from_email='your_email@gmail.com',
-            recipient_list=[self.user.email],
-            fail_silently=False
-        )
+        try:
+            PasswordResetCode.objects.create(user=self.user, code=code)
+            send_mail(
+                subject='Your Password Reset Code',
+                message=f'Your password reset code is: {code}',
+                from_email='your_email@gmail.com',
+                recipient_list=[self.user.email],
+                fail_silently=False
+            )
+        except Exception as e:
+            raise APIException(f"Failed to send reset code: {str(e)}")
 
 class VerifyResetCodeSerializer(serializers.Serializer):
     email = serializers.EmailField()
@@ -146,6 +190,8 @@ class VerifyResetCodeSerializer(serializers.Serializer):
 
     def save(self):
         self.user.set_password(self.validated_data['new_password'])
-        self.user.save()
-        PasswordResetCode.objects.filter(user=self.user).delete() 
-
+        try:
+            self.user.save()
+            PasswordResetCode.objects.filter(user=self.user).delete()
+        except Exception as e:
+            raise APIException(f"Failed to reset password: {str(e)}")

@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import EquipmentCreateView , BranchCreateView , EquipmentDeleteView , EquipmentListView , EquipmentDetailView 
+from .views import EquipmentCreateView , BranchCreateView , EquipmentDeleteView , EquipmentListView , EquipmentDetailView , DisposedEquipmentListView
 
 urlpatterns = [
     path('equipment/create/', EquipmentCreateView.as_view(), name='equipment-create'),
@@ -7,5 +7,7 @@ urlpatterns = [
     path('equipment/delete/<int:pk>/', EquipmentDeleteView.as_view(), name='delete-equipment'),
     path('equipment/show/', EquipmentListView.as_view(), name='equipment-list'),
     path('equipment/show/<int:pk>/', EquipmentDetailView.as_view(), name='equipment-detail'),
+    path('equipments/disposed/', DisposedEquipmentListView.as_view(), name='disposed-equipments'),
+
     
 ]

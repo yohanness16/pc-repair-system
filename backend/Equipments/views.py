@@ -53,3 +53,11 @@ class EquipmentDetailView(RetrieveAPIView):
     permission_classes = [IsAuthenticated]
     lookup_field = 'pk'
 
+
+class DisposedEquipmentListView(ListAPIView):
+    serializer_class = EquipmentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Equipment.objects.filter(status='disposed')
+
