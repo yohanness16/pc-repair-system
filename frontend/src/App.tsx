@@ -1,17 +1,16 @@
-
-import React, { useState } from 'react';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { DataProvider } from './context/DataContext';
-import LoginPage from './components/LoginPage';
-import Layout from './components/Layout';
-import Dashboard from './components/Dashboard';
-import PCStatus from './components/PCStatus';
-import WeeklyReports from './components/WeeklyReports';
-import AdminPanel from './components/AdminPanel';
+import React, { useState } from "react";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import { DataProvider } from "./context/DataContext";
+import LoginPage from "./components/LoginPage";
+import Layout from "./components/Layout";
+import Dashboard from "./components/Dashboard";
+import PCStatus from "./components/PCStatus";
+import WeeklyReports from "./components/WeeklyReports";
+import AdminPanel from "./components/AdminPanel";
 
 function AppContent() {
   const { user, isLoading } = useAuth();
-  const [currentPage, setCurrentPage] = useState('dashboard');
+  const [currentPage, setCurrentPage] = useState("dashboard");
 
   if (isLoading) {
     return (
@@ -30,13 +29,13 @@ function AppContent() {
 
   const renderPage = () => {
     switch (currentPage) {
-      case 'dashboard':
+      case "dashboard":
         return <Dashboard onPageChange={setCurrentPage} />;
-      case 'pc-status':
+      case "pc-status":
         return <PCStatus />;
-      case 'reports':
+      case "reports":
         return <WeeklyReports />;
-      case 'admin':
+      case "admin":
         return <AdminPanel />;
       default:
         return <Dashboard onPageChange={setCurrentPage} />;
@@ -58,6 +57,6 @@ function App() {
       </DataProvider>
     </AuthProvider>
   );
-
+}
 
 export default App;

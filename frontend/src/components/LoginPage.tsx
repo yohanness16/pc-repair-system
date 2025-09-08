@@ -1,35 +1,37 @@
-
-
-
-import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { Monitor, Shield, AlertCircle, Loader2 } from 'lucide-react';
+import React, { useState } from "react";
+import { useAuth } from "../context/AuthContext";
+import { Monitor, Shield, AlertCircle, Loader2 } from "lucide-react";
+import { useApiClient } from "../hooks/useApiClient";
+// import apiClient from "../api/axiosConfig";
 
 const LoginPage: React.FC = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const { login, isLoading } = useAuth();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const { login, isLoading, user } = useAuth();
+  const apiClient = useApiClient();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     if (!username || !password) {
-      setError('Please enter both username and password');
+      setError("Please enter both username and password");
       return;
     }
 
-    const success = await login(username, password);
+    const success = await login(username, password, apiClient);
+    console.log(success);
+
     if (!success) {
-      setError('Invalid credentials. Try: admin/password or tech1/password');
+      setError("Invalid credentials. Try: admin/password or tech1/password");
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900 flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-black bg-opacity-20"></div>
-      
+
       <div className="relative w-full max-w-md">
         <div className="card p-8 slide-up">
           <div className="text-center mb-8">
@@ -38,13 +40,20 @@ const LoginPage: React.FC = () => {
                 <Monitor className="w-8 h-58 text-blue-600" />
               </div>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Commercial Bank of Ethiopia</h1>
-            <p className="text-gray-600">PC & Printer Repair Management System</p>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              Commercial Bank of Ethiopia
+            </h1>
+            <p className="text-gray-600">
+              PC & Printer Repair Management System
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="username"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Username
               </label>
               <input
@@ -59,7 +68,10 @@ const LoginPage: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Password
               </label>
               <input
@@ -101,7 +113,9 @@ const LoginPage: React.FC = () => {
 
           <div className="mt-8 pt-6 border-t border-gray-200">
             <div className="text-xs text-gray-500 space-y-1">
-              <p><strong>Demo Credentials:</strong></p>
+              <p>
+                <strong>Demo Credentials:</strong>
+              </p>
               <p>Admin: admin / password</p>
               <p>IT Staff: tech1 / password</p>
             </div>
