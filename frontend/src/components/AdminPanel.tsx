@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useData } from "../context/DataContext";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -18,13 +18,22 @@ import {
   Trash2,
 } from "lucide-react";
 import NewUserModal from "./NewUserModal";
+import { useApiClient } from "../hooks/useApiClient";
 
 const AdminPanel: React.FC = () => {
   const { tickets, getDashboardStats } = useData();
+  const [users, setUsers] = useState([])
   const { user } = useAuth();
+  const apiClient = useApiClient()
   const [activeTab, setActiveTab] = useState("overview");
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const stats = getDashboardStats();
+
+  useEffect(() => {
+const fetchAllUsers = async () => {
+  const allUsers = await 
+}
+  }, [])
 
   // Only admins can access this panel
   if (user?.role !== "admin") {
