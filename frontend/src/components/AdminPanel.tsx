@@ -35,6 +35,7 @@ const fetchAllUsers = async () => {
 }
   }, [])
 
+  
   // Only admins can access this panel
   if (user?.role !== "admin") {
     return (
