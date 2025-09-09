@@ -42,8 +42,8 @@
             {% endif %}
         </p>
         <p><strong>Status:</strong> {{ repair.status }}</p>
-        <p><strong>Remark:</strong> {{ repair.remark|default:"-" }}</p>
-        <p><strong>Report:</strong> {{ repair.report|default:"-" }}</p>
+        <p><strong>comment:</strong> {{ repair.remark|default:"-" }}</p>
+        <p><strong>problem:</strong> {{ repair.report|default:"-" }}</p>
         <p><strong>Completed At:</strong> {{ repair.completed_at|date:"Y-m-d H:i" }}</p>
         <p><strong>Created At:</strong> {{ repair.created_at|date:"Y-m-d H:i" }}</p>
     </div>
