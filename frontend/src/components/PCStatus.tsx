@@ -476,11 +476,16 @@ const PCStatus: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "working":
-        return "bg-green-100 text-green-800";
-      case "maintenance":
         return "bg-blue-100 text-blue-800";
-      case "broken":
+      case "completed":
+        return "bg-green-100 text-green-800";
+      case "pending_creation":
+        return "bg-gray-100 text-gray-800";
+      case "pending_completion":
+        return "bg-yellow-100 text-yellow-800";
+      case "rejected":
         return "bg-red-100 text-red-800";
+      // ... other statuses
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -533,11 +538,13 @@ const PCStatus: React.FC = () => {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="input-field w-auto"
             >
-              {/* These values should match the 'status' field from the backend */}
               <option value="all">All Statuses</option>
+              <option value="pending_creation">Pending Creation</option>
+              <option value="pending_completion">Pending Completion</option>
               <option value="working">Working</option>
-              <option value="maintenance">Maintenance</option>
-              <option value="broken">Broken</option>
+              <option value="completed">Completed</option>
+              <option value="rejected">Rejected</option>
+              {/* ... other options */}
             </select>
 
             <select

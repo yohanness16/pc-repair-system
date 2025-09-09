@@ -370,7 +370,7 @@ import React, { useEffect, useState } from "react";
 import { useData } from "../context/DataContext";
 import { useAuth } from "../context/AuthContext";
 import { X, AlertCircle, Loader2 } from "lucide-react";
-import { createEquipment } from "../api/equipmentApi";
+import { createEquipment, requestEquipmentApproval } from "../api/equipmentApi";
 import { useApiClient } from "../hooks/useApiClient";
 
 interface NewTicketModalProps {
@@ -449,8 +449,13 @@ const NewTicketModal: React.FC<NewTicketModalProps> = ({ onClose }) => {
 
     try {
       const ticket = await createEquipment(apiClient, payload);
-
       console.log("Submitting payload to backend:", ticket);
+      const requestData = {
+        equipment: ticket.id,
+        remark: "string",
+      };
+      await requestEquipmentApproval(apiClient, requestData);
+      console.log("Submitting equipment for approval:", requestData);
       // await addTicket(payload); // Your actual API call would go here
       onClose();
     } catch (error) {

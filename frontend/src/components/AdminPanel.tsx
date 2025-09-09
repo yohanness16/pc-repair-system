@@ -19,21 +19,36 @@ import {
 } from "lucide-react";
 import NewUserModal from "./NewUserModal";
 import { useApiClient } from "../hooks/useApiClient";
+import { getAllUsers } from "../api/userApi";
+import UserDetailsModal from "./UserDetailsModal";
 
 const AdminPanel: React.FC = () => {
   const { tickets, getDashboardStats } = useData();
-  const [users, setUsers] = useState([])
+  const [users, setUsers] = useState<any>([]);
+  const [selectedUserId, setSelectedUserId] = useState<any>(null);
+
+  // Function to open the modal
+  const handleViewDetails = (userId: number) => {
+    setSelectedUserId(userId);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedUserId(null);
+  };
   const { user } = useAuth();
-  const apiClient = useApiClient()
+  const apiClient = useApiClient();
   const [activeTab, setActiveTab] = useState("overview");
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const stats = getDashboardStats();
 
   useEffect(() => {
-const fetchAllUsers = async () => {
-  const allUsers = await 
-}
-  }, [])
+    const fetchAllUsers = async () => {
+      const allUsers = await getAllUsers(apiClient);
+      setUsers(allUsers);
+    };
+    fetchAllUsers();
+    console.log(users);
+  }, []);
 
   // Only admins can access this panel
   if (user?.role !== "admin") {
@@ -122,7 +137,7 @@ const fetchAllUsers = async () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Active Users</p>
               <p className="text-2xl font-semibold text-gray-900">
-                {mockUsers.filter((u) => u.status === "active").length}
+                {users.filter((u) => u.status === "active").length}
               </p>
             </div>
           </div>
@@ -296,8 +311,8 @@ const fetchAllUsers = async () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {mockUsers.map((user) => (
-              <tr key={user.id} className="hover:bg-gray-50">
+            {users.map((user, _) => (
+              <tr key={_} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <div className="bg-blue-100 p-2 rounded-full mr-3">
@@ -334,7 +349,13 @@ const fetchAllUsers = async () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex items-center justify-end space-x-2">
-                    <button className="text-blue-600 hover:text-blue-900">
+                    <button
+                      className="text-blue-600 hover:text-blue-900"
+                      onClick={() => {
+                        handleViewDetails(user.id);
+                        console.log(user.id);
+                      }}
+                    >
                       <Eye className="w-4 h-4" />
                     </button>
                     <button className="text-gray-600 hover:text-gray-900">
@@ -354,6 +375,9 @@ const fetchAllUsers = async () => {
         <>
           <NewUserModal onClose={() => setShowAddUserModal(false)} />
         </>
+      )}
+      {selectedUserId && (
+        <UserDetailsModal userId={selectedUserId} onClose={handleCloseModal} />
       )}
     </div>
   );
@@ -414,6 +438,12 @@ const fetchAllUsers = async () => {
               System configuration and settings will be displayed here.
             </p>
           </div>
+        )}
+        {selectedUserId && (
+          <UserDetailsModal
+            userId={selectedUserId}
+            onClose={handleCloseModal}
+          />
         )}
       </div>
     </div>

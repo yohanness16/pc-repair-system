@@ -6,7 +6,7 @@ export function useApiClient() {
   const { user } = useAuth();
   const accessToken = user?.access;
   const apiClient = axios.create({
-    baseURL: "http://10.22.125.202:8000/api",
+    baseURL: "http://127.0.0.1:8000/api",
   });
 
   apiClient.interceptors.request.use((config) => {

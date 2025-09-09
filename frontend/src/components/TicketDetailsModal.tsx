@@ -303,10 +303,17 @@ import {
   CheckCircle,
   Activity,
   Edit,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { useApiClient } from "../hooks/useApiClient";
 import { useAuth } from "../context/AuthContext";
-import { getEquipmentById } from "../api/equipmentApi";
+import {
+  getEquipmentById,
+  approveOrRejectCreation,
+  requestRepairCompletion,
+  approveOrRejectCompletion,
+} from "../api/equipmentApi";
 import { updateEquipmentStatus } from "../api/repairApi";
 
 // Re-using the Equipment interface for type safety
@@ -331,6 +338,11 @@ interface TicketDetailsModalProps {
   onUpdate: () => void;
 }
 
+type Part = {
+  part_id: string;
+  quantity: string;
+};
+
 const TicketDetailsModal: React.FC<TicketDetailsModalProps> = ({
   ticketId,
   onClose,
@@ -338,13 +350,23 @@ const TicketDetailsModal: React.FC<TicketDetailsModalProps> = ({
 }) => {
   const [ticket, setTicket] = useState<Equipment | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const apiClient = useApiClient();
   const { user } = useAuth();
 
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [reportData, setReportData] = useState({ report: "", remark: "" });
+  // const [parts, setParts] = useState([{ part_id: "", quantity: "" }]);
+
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
-  const [newStatus, setNewStatus] = useState("");
+  const [updateData, setUpdateData] = useState({
+    status: "",
+    report: "",
+    remark: "",
+  });
+  const [parts, setParts] = useState<Part[]>([{ part_id: "", quantity: "" }]);
 
   useEffect(() => {
     // Define an async function to fetch the data
@@ -369,23 +391,127 @@ const TicketDetailsModal: React.FC<TicketDetailsModalProps> = ({
     fetchTicketDetails();
   }, []); // Re-run effect if ticketId changes
 
-  const handleUpdateStatus = async (statusToUpdate: string) => {
-    if (!ticket || !statusToUpdate) return;
+  const handleCreationApproval = async (isApproved: boolean) => {
+    setIsProcessing(true);
+    setError(null);
+    try {
+      await approveOrRejectCreation(
+        apiClient,
+        ticketId,
+        isApproved ? "approved" : "rejected",
+        isApproved ? null : rejectionReason
+      );
+      onUpdate();
+    } catch (err) {
+      setError("Failed to process creation request.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // STAFF: Action to Request Completion
+  const handleRequestCompletion = async () => {
+    setIsProcessing(true);
+    setError(null);
+    const payload = {
+      ...reportData,
+      parts: parts
+        .filter((p) => p.part_id && p.quantity)
+        .map((p) => ({
+          part_id: parseInt(p.part_id),
+          quantity: parseInt(p.quantity),
+        })),
+    };
+    try {
+      await requestRepairCompletion(apiClient, ticketId, payload);
+      onUpdate();
+    } catch (err) {
+      setError("Failed to submit completion request.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // ADMIN: Action for Completion Approval
+  const handleCompletionApproval = async (isApproved: boolean) => {
+    setIsProcessing(true);
+    setError(null);
+    try {
+      await approveOrRejectCompletion(
+        apiClient,
+        ticketId,
+        isApproved,
+        isApproved ? null : rejectionReason
+      );
+      onUpdate();
+    } catch (err) {
+      setError("Failed to process completion request.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handlePartChange = (
+    index: number,
+    field: keyof Part,
+    value: string
+  ) => {
+    const newParts = [...parts];
+    newParts[index][field] = value;
+    setParts(newParts);
+  };
+
+  const addPart = () => {
+    setParts([...parts, { part_id: "", quantity: "" }]);
+  };
+
+  const removePart = (index: number) => {
+    const newParts = parts.filter((_, i) => i !== index);
+    setParts(newParts);
+  };
+
+  const handleFormChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => {
+    const { name, value } = e.target;
+    setUpdateData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // --- REFACTORED: Handler for submitting the update ---
+  const handleSubmitUpdate = async () => {
+    if (!ticket || !updateData.status) {
+      setUpdateError("A status must be selected.");
+      return;
+    }
 
     setIsUpdating(true);
     setUpdateError(null);
+
+    // --- Prepare the payload for the backend ---
+    const payload = {
+      ...updateData,
+      // Filter out empty parts and convert strings to integers
+      parts: parts
+        .filter((p) => p.part_id && p.quantity)
+        .map((p) => ({
+          part_id: parseInt(p.part_id, 10),
+          quantity: parseInt(p.quantity, 10),
+        })),
+    };
 
     try {
       const updatedTicket = await updateEquipmentStatus(
         apiClient,
         ticket.id,
-        statusToUpdate
+        payload
       );
-      setTicket(updatedTicket); // Update the modal's view with the new data
-      onUpdate(); // --- Trigger the refresh on the parent PCStatus page
+      setTicket(updatedTicket); // Refresh modal view
+      onUpdate(); // Refresh the main list and close modal
     } catch (err) {
-      console.error("Failed to update status:", err);
-      setUpdateError("An error occurred. Could not update the status.");
+      console.error("Failed to submit update:", err);
+      setUpdateError("An error occurred. Could not submit the update.");
     } finally {
       setIsUpdating(false);
     }
@@ -394,154 +520,134 @@ const TicketDetailsModal: React.FC<TicketDetailsModalProps> = ({
   // --- RENDER LOGIC ---
   const isOwner = user?.username === ticket?.added_by_name;
   const isAdmin = user?.role === "admin";
-
-  // For admins, determine if the status is something that needs approval.
-  // This assumes statuses like 'pending_disposal' or 'pending_completion' might exist.
-  const isPendingApproval = ticket?.status.startsWith("pending_");
+  const isPendingApproval = ticket?.status.startsWith("pending_"); // e.g., 'pending_disposal'
 
   // Helper component for displaying detail items
-  const DetailItem: React.FC<{
-    icon: React.ElementType;
-    label: string;
-    value: React.ReactNode;
-  }> = ({ icon: Icon, label, value }) => (
-    <div>
-      <dt className="flex items-center text-sm font-medium text-gray-500">
-        <Icon className="w-4 h-4 mr-2 text-gray-400" />
-        <span>{label}</span>
-      </dt>
-      <dd className="mt-1 text-md text-gray-900 font-semibold">
-        {value || "N/A"}
-      </dd>
-    </div>
-  );
+  // const DetailItem: React.FC<{
+  //   icon: React.ElementType;
+  //   label: string;
+  //   value: React.ReactNode;
+  // }> = ({ icon: Icon, label, value }) => (
+  //   <div>
+  //     <dt className="flex items-center text-sm font-medium text-gray-500">
+  //       <Icon className="w-4 h-4 mr-2 text-gray-400" />
+  //       <span>{label}</span>
+  //     </dt>
+  //     <dd className="mt-1 text-md text-gray-900 font-semibold">
+  //       {value || "N/A"}
+  //     </dd>
+  //   </div>
+  // );
+  const renderActionArea = () => {
+    // ADMIN: Approve/Reject a new equipment request
+    if (isAdmin) {
+      return (
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Creation Approval</h3>
+          <textarea
+            value={rejectionReason}
+            onChange={(e) => setRejectionReason(e.target.value)}
+            placeholder="Add rejection reason (if rejecting)"
+            className="input-field"
+          />
+          <div className="flex space-x-4">
+            <button
+              onClick={() => handleCreationApproval(true)}
+              disabled={isProcessing}
+              className="btn-primary"
+            >
+              Approve
+            </button>
+            <button
+              onClick={() => handleCreationApproval(false)}
+              disabled={isProcessing || !rejectionReason}
+              className="btn-danger"
+            >
+              Reject
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // STAFF: Submit a repair report for a 'working' item
+    if (!isAdmin && status === "working") {
+      return (
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Submit Repair for Approval</h3>
+          {/* Your existing form for report, parts, and remark goes here */}
+          {/* ... form fields for reportData and parts ... */}
+          <button
+            onClick={handleRequestCompletion}
+            disabled={isProcessing}
+            className="btn-primary"
+          >
+            Request Completion
+          </button>
+        </div>
+      );
+    }
+
+    // ADMIN: Approve/Reject a completed repair
+    if (isAdmin && status === "pending_completion") {
+      return (
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Completion Approval</h3>
+          {/* Display the staff's report, parts, and remark here for the admin to review */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <p>
+              <strong>Staff Report:</strong> {ticket.report || "N/A"}
+            </p>
+            {/* You might need to display parts here too */}
+          </div>
+          <textarea
+            value={rejectionReason}
+            onChange={(e) => setRejectionReason(e.target.value)}
+            placeholder="Add rejection reason (if rejecting)"
+            className="input-field"
+          />
+          <div className="flex space-x-4">
+            <button
+              onClick={() => handleCompletionApproval(true)}
+              disabled={isProcessing}
+              className="btn-primary"
+            >
+              Approve Completion
+            </button>
+            <button
+              onClick={() => handleCompletionApproval(false)}
+              disabled={isProcessing || !rejectionReason}
+              className="btn-danger"
+            >
+              Reject Completion
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Default: No actions available
+    return (
+      <p className="text-sm text-gray-500">
+        No actions available for this item's current status.
+      </p>
+    );
+  };
 
   return (
     <div className="fixed inset-0 ...">
       <div className="bg-white rounded-xl ...">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">
-            Equipment Details
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+        {/* ... Modal Header and Details Display ... */}
 
-        <div className="p-6">
-          {loading && (
-            <div className="flex flex-col items-center justify-center h-48">
-              <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-              <p className="mt-2 text-gray-600">Loading Details...</p>
-            </div>
-          )}
+        {/* --- The Dynamic Action Area --- */}
+        {!loading && ticket && (
+          <div className="p-6 border-t">
+            {renderActionArea()}
+            {error && <p className="text-red-600 mt-2">{error}</p>}
+          </div>
+        )}
 
-          {/* --- NEW SECTION: Update Controls --- */}
-          {!loading && !error && ticket && (isAdmin || isOwner) && (
-            <div className="mt-8 pt-6 border-t">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <Edit className="w-5 h-5 mr-2 text-gray-500" />
-                Update Status
-              </h3>
-
-              {/* --- ADMIN Controls --- */}
-              {isAdmin && (
-                <div className="space-y-4">
-                  <p className="text-sm text-gray-600">
-                    As an administrator, you can directly approve or change the
-                    equipment status.
-                  </p>
-                  {isPendingApproval ? (
-                    <div className="flex space-x-4">
-                      <button
-                        onClick={() =>
-                          handleUpdateStatus(
-                            ticket.status.replace("pending_", "")
-                          )
-                        }
-                        className="btn-primary"
-                        disabled={isUpdating}
-                      >
-                        {isUpdating ? (
-                          <Loader2 className="animate-spin" />
-                        ) : (
-                          `Approve ${ticket.status_display}`
-                        )}
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center space-x-3">
-                      <select
-                        value={newStatus}
-                        onChange={(e) => setNewStatus(e.target.value)}
-                        className="input-field"
-                      >
-                        <option value="">Select new status...</option>
-                        <option value="working">Working</option>
-                        <option value="completed">Completed</option>
-                        <option value="disposed">Disposed</option>
-                        <option value="maintenance">Maintenance</option>
-                      </select>
-                      <button
-                        onClick={() => handleUpdateStatus(newStatus)}
-                        className="btn-primary"
-                        disabled={isUpdating || !newStatus}
-                      >
-                        {isUpdating ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          "Update"
-                        )}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* --- STAFF Controls --- */}
-              {!isAdmin && isOwner && (
-                <div className="space-y-4">
-                  <p className="text-sm text-gray-600">
-                    You can request a status change for equipment you added.
-                  </p>
-                  <div className="flex items-center space-x-3">
-                    <select
-                      value={newStatus}
-                      onChange={(e) => setNewStatus(e.target.value)}
-                      className="input-field"
-                    >
-                      <option value="">Select new status...</option>
-                      <option value="completed">Completed</option>
-                      <option value="disposed">Disposed</option>
-                    </select>
-                    <button
-                      onClick={() => handleUpdateStatus(newStatus)}
-                      className="btn-primary"
-                      disabled={isUpdating || !newStatus}
-                    >
-                      {isUpdating ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        "Submit Update"
-                      )}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {updateError && (
-                <p className="mt-2 text-sm text-red-600 flex items-center">
-                  <AlertCircle className="w-4 h-4 mr-1" /> {updateError}
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="flex justify-end p-6 border-t border-gray-200">
+        <div className="flex justify-end p-6 border-t">
           <button onClick={onClose} className="btn-secondary">
             Close
           </button>
