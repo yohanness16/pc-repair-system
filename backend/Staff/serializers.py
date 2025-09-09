@@ -41,6 +41,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = Staff
         fields = [
+            'id',
             'username',
             'email',
             'password',

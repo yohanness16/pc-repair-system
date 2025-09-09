@@ -62,12 +62,81 @@ class RepairRequestCreateView(generics.CreateAPIView):
         except IntegrityError as e:
             raise APIException(f"Failed to create repair request: {str(e)}")
 
-    
+
+class RepairRequestListView(generics.ListAPIView):
+    serializer_class = RepairCreateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # ✅ Fix: Swagger runs without a logged-in user (AnonymousUser),
+        # so short-circuit during schema generation
+        if getattr(self, 'swagger_fake_view', False):
+            return Repair.objects.none()
+
+        user = self.request.user
+        if user.is_superuser or user.is_staff:  # Admin → all
+            return Repair.objects.all().order_by('-created_at')
+        return Repair.objects.filter(staff=user).order_by('-created_at')
+
+    @swagger_auto_schema(
+        operation_description="Get repair requests. Admins see all, staff see only their own.",
+        responses={
+            200: RepairCreateSerializer(many=True),
+            403: "Forbidden"
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+
+
+class RepairRequestDetailView(generics.RetrieveAPIView):
+    queryset = Repair.objects.all()
+    serializer_class = RepairCreateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Repair.objects.none()
+
+        user = self.request.user
+        if user.is_superuser or user.is_staff:
+            return Repair.objects.all()
+        return Repair.objects.filter(staff=user)
+
+    @swagger_auto_schema(
+        operation_description="Retrieve a single repair request. Admins can access all, staff can only access their own.",
+        responses={200: RepairCreateSerializer, 403: "Forbidden", 404: "Not Found"}
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+
+
 class RepairApprovalView(generics.UpdateAPIView):
     queryset = Repair.objects.all()
     serializer_class = RepairApprovalSerializer
     permission_classes = [permissions.IsAuthenticated, IsAdmin]
     lookup_field = 'pk'
+class AssignedRepairsView(generics.ListAPIView):
+    serializer_class = RepairHistorySerializer
+    permission_classes = [permissions.IsAuthenticated, IsAssignedRepairStaff]
+
+    def get_queryset(self):
+        user = self.request.user
+        if not hasattr(user, "staff"):
+            raise APIException("You are not registered as a staff member.")
+        return Repair.objects.filter(repair_staff=user.staff).order_by('-created_at')
+
+    @swagger_auto_schema(
+        operation_description="Get all repairs assigned to the logged-in staff",
+        responses={200: RepairHistorySerializer(many=True), 403: "Forbidden"}
+    )
+    def get(self, request, *args, **kwargs):
+        try:
+            return super().get(request, *args, **kwargs)
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
 
 class CompleteRepairView(generics.UpdateAPIView):
     queryset = Repair.objects.all()

@@ -146,6 +146,29 @@ class StaffListView(generics.ListAPIView):
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
 
+class GetStaffByIdView(generics.RetrieveAPIView):
+    queryset = Staff.objects.all()
+    serializer_class = RegisterSerializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    @swagger_auto_schema(
+        operation_description="Get staff details by ID (Admin only)",
+        manual_parameters=[
+            openapi.Parameter(
+                'id', openapi.IN_PATH,
+                description="ID of the staff",
+                type=openapi.TYPE_INTEGER,
+                required=True
+            )
+        ],
+        responses={
+            200: RegisterSerializer,
+            403: 'Forbidden',
+            404: 'Staff not found'
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
 
 class StaffRepairProgressView(generics.ListAPIView):
     serializer_class = RepairHistorySerializer
