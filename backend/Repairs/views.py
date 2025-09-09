@@ -68,8 +68,7 @@ class RepairRequestListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        # ✅ Fix: Swagger runs without a logged-in user (AnonymousUser),
-        # so short-circuit during schema generation
+ 
         if getattr(self, 'swagger_fake_view', False):
             return Repair.objects.none()
 
@@ -89,7 +88,32 @@ class RepairRequestListView(generics.ListAPIView):
         return super().get(request, *args, **kwargs)
 
 
+class RepairListByEquipmentView(generics.ListAPIView):
+    serializer_class = RepairHistorySerializer
+    permission_classes = [permissions.IsAuthenticated]
 
+    def get_queryset(self):
+        equipment_id = self.kwargs.get('equipment_id')
+        return Repair.objects.filter(equipment_id=equipment_id).order_by('-created_at')
+
+    @swagger_auto_schema(
+        operation_description="Get all repairs for a specific equipment by equipment ID",
+        manual_parameters=[
+            openapi.Parameter(
+                'equipment_id', openapi.IN_PATH,
+                description="ID of the equipment",
+                type=openapi.TYPE_INTEGER,
+                required=True
+            )
+        ],
+        responses={
+            200: RepairHistorySerializer(many=True),
+            403: "Forbidden",
+            404: "Equipment not found"
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
 class RepairRequestDetailView(generics.RetrieveAPIView):
     queryset = Repair.objects.all()
     serializer_class = RepairCreateSerializer

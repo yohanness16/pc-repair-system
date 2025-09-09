@@ -1,6 +1,6 @@
 
 from django.urls import path
-from .views import RepairRequestCreateView, RepairApprovalView ,CompleteRepairView , PartDetailView, PartListCreateView ,EquipmentRepairHistoryView , AdminRepairStatsView , EquipmentRepairPDFView , RepairReceiptPDFView , ApprovedRepairLabelView , RepairRequestListView , RepairRequestDetailView , AssignedRepairsView
+from .views import RepairRequestCreateView, RepairApprovalView ,CompleteRepairView , PartDetailView, PartListCreateView ,EquipmentRepairHistoryView , AdminRepairStatsView , EquipmentRepairPDFView , RepairReceiptPDFView , ApprovedRepairLabelView , RepairRequestListView , RepairRequestDetailView , AssignedRepairsView , RepairListByEquipmentView
 
 urlpatterns = [
     path('request/', RepairRequestCreateView.as_view(), name='repair-request'),
@@ -16,6 +16,9 @@ urlpatterns = [
     path('repair/<int:repair_id>/receipt/pdf/', RepairReceiptPDFView.as_view(), name='repair-receipt-pdf'),
     path('repairs/<int:repair_id>/approved-label/', ApprovedRepairLabelView.as_view(), name='approved-repair-label'),
     path("repairs/assigned/", AssignedRepairsView.as_view(), name="repair-assigned"),
+    path('repairs/equipment/<int:equipment_id>/', RepairListByEquipmentView.as_view(), name='repairs-by-equipment'),
+
+
 
 
 
