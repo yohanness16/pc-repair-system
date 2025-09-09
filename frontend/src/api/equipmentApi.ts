@@ -31,12 +31,21 @@ export const requestEquipmentApproval = async (apiClient: AxiosInstance, request
 /**
  * 2. ADMIN: Approves or rejects a new equipment creation request.
  */
-export const approveOrRejectCreation = async (apiClient: AxiosInstance, id: any, isApproved: any, rejectionReason: any) => {
-  const payload = { approved: isApproved, reason: rejectionReason };
-  const equipment = await getEquipmentById(id)
-  const response = await apiClient.post(`/Repairs/approve/${id}/`, payload);
+export const getAllRepairs = async (apiClient: AxiosInstance, ) => {
+  const response = await apiClient.post(`/Repairs/repairs/`);
   return response.data;
 };
+
+export const approveOrRejectCreation = async (apiClient: AxiosInstance, equipmentId: any, isApproved: any, rejectionReason: any) => {
+  const allRepairs = getAllRepairs(apiClient)
+  const data: [] = allRepairs
+  const specifcRepair = data.filter((rep) => rep.equipmentId === equipmentId)
+  const payload = { approved: isApproved, reason: rejectionReason };
+  const response = await apiClient.post(`/Repairs/approve/${requiestId}/`, payload);
+  return response.data;
+};
+
+
 
 /**
  * 3. STAFF: Submits a completed repair report for admin approval.

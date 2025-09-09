@@ -54,7 +54,6 @@ const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
       setError(null);
       try {
         const data = await getUserById(apiClient, userId, newPassword);
-        console.log(data);
         setUser(data);
       } catch (err) {
         console.error("Failed to fetch user details:", err);
@@ -66,28 +65,45 @@ const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
     fetchUserDetails();
   }, []);
 
-  //   const handleResetPassword = async () => {
-  //     if (newPassword.length < 8) {
-  //       setUpdateError("Password must be at least 8 characters long.");
-  //       setUpdateSuccess(null);
-  //       return;
-  //     }
+  const handleResetPassword = async () => {
+    // 1. Add a guard clause to ensure user data is loaded
+    if (!user) {
+      setUpdateError("User details are not available. Cannot reset password.");
+      return;
+    }
 
-  //     setIsUpdating(true);
-  //     setUpdateError(null);
-  //     setUpdateSuccess(null);
+    if (newPassword.length < 8) {
+      setUpdateError("Password must be at least 8 characters long.");
+      setUpdateSuccess(null);
+      return;
+    }
 
-  //     try {
-  //       await resetUserPassword(apiClient, userId, newPassword);
-  //       setUpdateSuccess("Password has been reset successfully!");
-  //       setNewPassword(""); // Clear the input on success
-  //     } catch (err) {
-  //       console.error("Failed to reset password:", err);
-  //       setUpdateError("An error occurred. Could not reset the password.");
-  //     } finally {
-  //       setIsUpdating(false);
-  //     }
-  //   };
+    setIsUpdating(true);
+    setUpdateError(null);
+    setUpdateSuccess(null);
+
+    try {
+      // 2. Create the payload with all required fields from the component's state
+      const payload = {
+        new_password: newPassword,
+        email: user.email,
+        first_name: user.first_name,
+        last_name: user.last_name,
+      };
+
+      console.log(payload);
+      // 3. Pass the complete payload to the updated API function
+      await resetUserPassword(apiClient, userId, payload);
+
+      setUpdateSuccess("Password has been reset successfully!");
+      setNewPassword(""); // Clear the input on success
+    } catch (err) {
+      console.error("Failed to reset password:", err);
+      setUpdateError("An error occurred. Could not reset the password.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   // Helper component for displaying detail items consistently
   const DetailItem: React.FC<{
@@ -176,7 +192,7 @@ const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
                   className="input-field w-full"
                   disabled={isUpdating}
                 />
-                {/* <button
+                <button
                   onClick={handleResetPassword}
                   className="btn-primary"
                   disabled={isUpdating}
@@ -186,7 +202,7 @@ const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
                   ) : (
                     "Reset"
                   )}
-                </button> */}
+                </button>
               </div>
               {updateError && (
                 <p className="mt-2 text-sm text-red-600 flex items-center">

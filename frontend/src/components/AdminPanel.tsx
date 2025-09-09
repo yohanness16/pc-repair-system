@@ -50,7 +50,6 @@ const AdminPanel: React.FC = () => {
     console.log(users);
   }, []);
 
-  
   // Only admins can access this panel
   if (user?.role !== "admin") {
     return (
@@ -312,8 +311,8 @@ const AdminPanel: React.FC = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {users.map((user, _) => (
-              <tr key={_} className="hover:bg-gray-50">
+            {users.map((user) => (
+              <tr key={user.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <div className="bg-blue-100 p-2 rounded-full mr-3">

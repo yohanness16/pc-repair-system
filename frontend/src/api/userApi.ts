@@ -11,12 +11,14 @@ export const getAllUsers = async (apiClient: AxiosInstance) => {
     return response.data
 }
 
-export const resetUserPassword = async (apiClient: AxiosInstance, payload: any) => {
-
+export const resetUserPassword = async (apiClient: AxiosInstance, userId: any, payload: any) => {
+    const response = await apiClient.post('/Staff/forgot/', payload)
+    console.log(payload);
+    
+    return response.data
 }
 
 export const getUserById = async (apiClient: AxiosInstance, userId: any, newPassword: any) => {
-    const allUsers = await getAllUsers(apiClient).then((response) => response.data)
-    const user = allUsers.filter((u) => u.id === userId)
-    return user
+    const response = await apiClient.get(`/Staff/list/${userId}/`)
+    return response.data
 }

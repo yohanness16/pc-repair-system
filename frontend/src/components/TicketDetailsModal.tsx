@@ -334,6 +334,7 @@ interface Equipment {
 
 interface TicketDetailsModalProps {
   ticketId: number; // The ID of the equipment to fetch
+  requestId?: number;
   onClose: () => void;
   onUpdate: () => void;
 }
@@ -357,7 +358,7 @@ const TicketDetailsModal: React.FC<TicketDetailsModalProps> = ({
 
   const [rejectionReason, setRejectionReason] = useState("");
   const [reportData, setReportData] = useState({ report: "", remark: "" });
-  // const [parts, setParts] = useState([{ part_id: "", quantity: "" }]);
+  const [parts, setParts] = useState<Part[]>([{ part_id: "", quantity: "" }]);
 
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
@@ -366,7 +367,6 @@ const TicketDetailsModal: React.FC<TicketDetailsModalProps> = ({
     report: "",
     remark: "",
   });
-  const [parts, setParts] = useState<Part[]>([{ part_id: "", quantity: "" }]);
 
   useEffect(() => {
     // Define an async function to fetch the data
@@ -390,6 +390,13 @@ const TicketDetailsModal: React.FC<TicketDetailsModalProps> = ({
 
     fetchTicketDetails();
   }, []); // Re-run effect if ticketId changes
+
+  const handleReportChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setReportData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleCreationApproval = async (isApproved: boolean) => {
     setIsProcessing(true);
@@ -423,7 +430,7 @@ const TicketDetailsModal: React.FC<TicketDetailsModalProps> = ({
         })),
     };
     try {
-      await requestRepairCompletion(apiClient, ticketId, payload);
+      await updateEquipmentStatus(apiClient, ticketId, payload);
       onUpdate();
     } catch (err) {
       setError("Failed to submit completion request.");
@@ -571,32 +578,117 @@ const TicketDetailsModal: React.FC<TicketDetailsModalProps> = ({
     }
 
     // STAFF: Submit a repair report for a 'working' item
-    if (!isAdmin && status === "working") {
+    if (
+      !isAdmin &&
+      ticket?.added_by === user?.id &&
+      ticket?.status === "under_repair"
+    ) {
       return (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Submit Repair for Approval</h3>
-          {/* Your existing form for report, parts, and remark goes here */}
-          {/* ... form fields for reportData and parts ... */}
+        <div className="space-y-6">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Submit Repair for Approval
+          </h3>
+
+          {/* Report */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Work Report *
+            </label>
+            <textarea
+              name="report"
+              value={reportData.report}
+              onChange={handleReportChange}
+              rows={4}
+              className="input-field"
+              placeholder="Describe the work that was done..."
+            />
+          </div>
+
+          {/* Parts Used */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-4">
+              Parts Used
+            </label>
+            <div className="space-y-3">
+              {parts.map((part, index) => (
+                <div key={index} className="flex items-center space-x-2">
+                  <input
+                    type="text"
+                    placeholder="Part ID"
+                    value={part.part_id}
+                    onChange={(e) =>
+                      handlePartChange(index, "part_id", e.target.value)
+                    }
+                    className="input-field w-full"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Qty"
+                    value={part.quantity}
+                    onChange={(e) =>
+                      handlePartChange(index, "quantity", e.target.value)
+                    }
+                    className="input-field w-1/4"
+                    min="1"
+                  />
+                  <button
+                    onClick={() => removePart(index)}
+                    className="text-red-500 hover:text-red-700 p-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={addPart}
+              className="mt-3 text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center"
+            >
+              <Plus className="w-4 h-4 mr-1" /> Add Part
+            </button>
+          </div>
+
+          {/* Remark */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Additional Remark
+            </label>
+            <textarea
+              name="remark"
+              value={reportData.remark}
+              onChange={handleReportChange}
+              rows={2}
+              className="input-field"
+              placeholder="Optional notes..."
+            />
+          </div>
+
           <button
             onClick={handleRequestCompletion}
             disabled={isProcessing}
-            className="btn-primary"
+            className="btn-primary w-full"
           >
-            Request Completion
+            {isProcessing ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin mr-2" /> Submitting...
+              </>
+            ) : (
+              "Request Completion"
+            )}
           </button>
         </div>
       );
     }
 
     // ADMIN: Approve/Reject a completed repair
-    if (isAdmin && status === "pending_completion") {
+    if (isAdmin && ticket?.status == "need_repair") {
       return (
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">Completion Approval</h3>
           {/* Display the staff's report, parts, and remark here for the admin to review */}
           <div className="bg-gray-50 p-4 rounded-lg">
             <p>
-              <strong>Staff Report:</strong> {ticket.report || "N/A"}
+              <strong>Staff Report:</strong> {ticket?.report || "N/A"}
             </p>
             {/* You might need to display parts here too */}
           </div>

@@ -7,6 +7,7 @@ export const updateEquipmentStatus = async (
 ) => {
   console.log(payload);
   
+  
   const response = await apiClient.patch(`/Repairs/complete/${id}/`, payload);
   return response.data;
 };
