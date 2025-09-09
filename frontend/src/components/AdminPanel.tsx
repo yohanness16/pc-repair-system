@@ -50,6 +50,7 @@ const AdminPanel: React.FC = () => {
     console.log(users);
   }, []);
 
+  
   // Only admins can access this panel
   if (user?.role !== "admin") {
     return (
