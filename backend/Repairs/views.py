@@ -138,10 +138,36 @@ class RepairRequestDetailView(generics.RetrieveAPIView):
 
 
 class RepairApprovalView(generics.UpdateAPIView):
+    
     queryset = Repair.objects.all()
     serializer_class = RepairApprovalSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+    permission_classes = [permissions.IsAuthenticated]  
     lookup_field = 'pk'
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Repair.objects.none()
+        user = self.request.user
+        
+        return Repair.objects.filter(staff__user=user)
+
+    @swagger_auto_schema(
+        operation_description="Approve or reject your own repair request (creator only).",
+        request_body=RepairApprovalSerializer,
+        responses={200: RepairApprovalSerializer, 400: "Bad Request", 403: "Forbidden", 404: "Not Found"}
+    )
+    def put(self, request, *args, **kwargs):
+        return super().put(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_description="Partially approve/reject your own repair request (creator only).",
+        request_body=RepairApprovalSerializer,
+        responses={200: RepairApprovalSerializer, 400: "Bad Request", 403: "Forbidden", 404: "Not Found"}
+    )
+    def patch(self, request, *args, **kwargs):
+        return super().patch(request, *args, **kwargs)
+
+
 class AssignedRepairsView(generics.ListAPIView):
     serializer_class = RepairHistorySerializer
     permission_classes = [permissions.IsAuthenticated, IsAssignedRepairStaff]
@@ -163,16 +189,38 @@ class AssignedRepairsView(generics.ListAPIView):
             return Response({"error": str(e)}, status=500)
 
 class CompleteRepairView(generics.UpdateAPIView):
+   
     queryset = Repair.objects.all()
     serializer_class = CompleteRepairSerializer
+    permission_classes = [permissions.IsAuthenticated]  
     lookup_field = 'pk'
 
-    permission_classes = [permissions.IsAuthenticated, IsAssignedRepairStaff]
-@swagger_auto_schema(
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Repair.objects.none()
+        user = self.request.user
+        if not hasattr(user, "staff"):
+            raise APIException("You are not registered as a staff member.")
+        
+        return Repair.objects.filter(repair_staff=user.staff)
+
+    @swagger_auto_schema(
+        operation_description="Mark your assigned repair as completed (report & parts used).",
         request_body=CompleteRepairSerializer,
-        responses={200: CompleteRepairSerializer, 400: 'Bad Request'}
+        responses={200: CompleteRepairSerializer, 400: "Bad Request", 403: "Forbidden", 404: "Not Found"}
     )
-    
+    def put(self, request, *args, **kwargs):
+        return super().put(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_description="Partially mark your assigned repair as completed.",
+        request_body=CompleteRepairSerializer,
+        responses={200: CompleteRepairSerializer, 400: "Bad Request", 403: "Forbidden", 404: "Not Found"}
+    )
+    def patch(self, request, *args, **kwargs):
+        return super().patch(request, *args, **kwargs)
+
+
 class EquipmentRepairHistoryView(generics.ListAPIView):
     serializer_class = RepairHistorySerializer
     permission_classes = [permissions.IsAuthenticated]

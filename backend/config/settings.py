@@ -11,7 +11,7 @@ SECRET_KEY = config("SECRET_KEY")
 
 DEBUG = config("DEBUG", cast=bool)
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '10.22.125.202']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '10.250.46.202']
 
 
 
@@ -80,7 +80,7 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'            
 EMAIL_PORT = 587                         
 EMAIL_USE_TLS = True                    
-EMAIL_HOST_USER = 'yohanness1621@gmail.com'  
+EMAIL_HOST_USER = 'something@gmail.com'  
 EMAIL_HOST_PASSWORD = 'hnvu dygg znua erzn' 
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 

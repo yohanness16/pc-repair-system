@@ -1,15 +1,15 @@
-
 from rest_framework import serializers
-from .models import Repair ,    Part , RepairPart
-from Staff.models import Staff
+from .models import Repair, Part, RepairPart
 from django.utils import timezone
 from django.db import IntegrityError
 from rest_framework.exceptions import APIException
+
 
 class PartSerializer(serializers.ModelSerializer):
     class Meta:
         model = Part
         fields = '__all__'
+
 
 class RepairPartSerializer(serializers.ModelSerializer):
     part_name = serializers.CharField(source='part.name')
@@ -22,23 +22,23 @@ class RepairPartSerializer(serializers.ModelSerializer):
 class RepairCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Repair
-        fields = ['id','equipment', 'remark']  
+        fields = ['id', 'equipment', 'remark']
 
     def create(self, validated_data):
-        request = self.context['request']  
-        staff = request.user  
+        request = self.context['request']
+        staff = request.user
         return Repair.objects.create(
             equipment=validated_data['equipment'],
             remark=validated_data.get('remark', ''),
-            staff=staff,  
-            status='pending' 
+            staff=staff,
+            status='pending'
         )
-class RepairApprovalSerializer(serializers.ModelSerializer):
-    repair_staff_id = serializers.IntegerField(write_only=True, required=False)
 
+
+class RepairApprovalSerializer(serializers.ModelSerializer):
     class Meta:
         model = Repair
-        fields = ['status', 'repair_staff_id']
+        fields = ['status']
 
     def validate_status(self, value):
         if value not in ['approved', 'rejected']:
@@ -46,27 +46,21 @@ class RepairApprovalSerializer(serializers.ModelSerializer):
         return value
 
     def update(self, instance, validated_data):
-        instance.status = validated_data['status']
+        request = self.context['request']
+        if instance.staff != request.user:
+            raise serializers.ValidationError("You can only approve/reject your own repair requests.")
 
+        instance.status = validated_data['status']
         if instance.status == 'approved':
             instance.approved_at = timezone.now()
-
-            repair_staff_id = validated_data.get('repair_staff_id')
-            if repair_staff_id:
-                try:
-                    staff = Staff.objects.get(id=repair_staff_id)
-                    instance.repair_staff = staff
-                except Staff.DoesNotExist:
-                    raise serializers.ValidationError({'repair_staff_id': 'Staff not found'})
-
         instance.save()
         return instance
-    
 
-    
+
 class RepairPartInputSerializer(serializers.Serializer):
     part_id = serializers.IntegerField()
     quantity = serializers.IntegerField(min_value=1)
+
 
 class CompleteRepairSerializer(serializers.ModelSerializer):
     parts = RepairPartInputSerializer(many=True, write_only=True)
@@ -82,8 +76,13 @@ class CompleteRepairSerializer(serializers.ModelSerializer):
         return value
 
     def update(self, instance, validated_data):
-        instance.status = validated_data['status']
+        request = self.context['request']
+        if instance.staff != request.user:
+            raise serializers.ValidationError("You can only complete your own repair requests.")
+
+        instance.status = 'completed'
         instance.report = validated_data.get('report', '')
+        instance.remark = validated_data.get('remark', '')
         instance.completed_at = timezone.now()
 
         try:
@@ -91,29 +90,24 @@ class CompleteRepairSerializer(serializers.ModelSerializer):
         except IntegrityError as e:
             raise APIException(f"Failed to delete old repair parts: {str(e)}")
 
-        try:
-            instance.save()
-        except IntegrityError as e:
-            raise APIException(f"Failed to save repair: {str(e)}")
-
         parts_data = validated_data.get('parts', [])
         for part_info in parts_data:
             try:
                 part = Part.objects.get(id=part_info['part_id'])
-                try:
-                    RepairPart.objects.create(
-                        repair=instance,
-                        part=part,
-                        quantity=part_info['quantity']
-                    )
-                except IntegrityError as e:
-                    raise APIException(f"Failed to create RepairPart: {str(e)}")
+                RepairPart.objects.create(
+                    repair=instance,
+                    part=part,
+                    quantity=part_info['quantity']
+                )
             except Part.DoesNotExist:
                 raise serializers.ValidationError(f"Part with ID {part_info['part_id']} not found")
+            except IntegrityError as e:
+                raise APIException(f"Failed to create RepairPart: {str(e)}")
 
+        instance.save()
         return instance
 
-    
+
 class RepairHistorySerializer(serializers.ModelSerializer):
     parts = RepairPartSerializer(source='repair_parts', many=True, read_only=True)
     equipment_branch = serializers.CharField(source='equipment.branch.name', read_only=True)
@@ -121,7 +115,11 @@ class RepairHistorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Repair
-        fields = ['id', 'status', 'completed_at','created_at','report','remark','status', 'repair_staff_name', 'parts', 'equipment_branch']
+        fields = [
+            'id', 'status', 'completed_at', 'created_at',
+            'report', 'remark', 'status', 'repair_staff_name',
+            'parts', 'equipment_branch'
+        ]
 
     def get_repair_staff_name(self, obj):
         if obj.repair_staff:
