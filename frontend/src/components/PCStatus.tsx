@@ -492,10 +492,10 @@ const PCStatus: React.FC = () => {
   };
   // The priority field doesn't exist, so getPriorityColor is removed.
 
-  const handleStatusUpdate = (ticketId: number, newStatus: string) => {
-    // This function might need adjustment depending on what your update API endpoint expects
-    updateTicket(ticketId, { status: newStatus });
-  };
+  // const handleStatusUpdate = (ticketId: number, newStatus: string) => {
+  //   // This function might need adjustment depending on what your update API endpoint expects
+  //   updateTicket(ticketId, { status: newStatus });
+  // };
 
   return (
     <div className="space-y-6">
@@ -667,7 +667,7 @@ const PCStatus: React.FC = () => {
                         {user?.role === "admin" && (
                           <>
                             <button
-                              onClick={() => deleteTicket(ticket.id)}
+                              onClick={() => deleteTicket(ticket?.id.toString())}
                               className="text-red-600 hover:text-red-900"
                               title="Delete Record"
                             >
@@ -693,6 +693,7 @@ const PCStatus: React.FC = () => {
 
       {selectedTicket && (
         <TicketDetailsModal
+        onUpdate={() => {}}
           ticketId={selectedTicket}
           onClose={() => setSelectedTicket(null)}
         />

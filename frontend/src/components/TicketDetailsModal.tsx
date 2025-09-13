@@ -330,6 +330,7 @@ interface Equipment {
   created_at: string;
   branch: number;
   added_by: number;
+  report: string;
 }
 
 interface TicketDetailsModalProps {
@@ -448,7 +449,6 @@ const TicketDetailsModal: React.FC<TicketDetailsModalProps> = ({
         apiClient,
         ticketId,
         isApproved,
-        isApproved ? null : rejectionReason
       );
       onUpdate();
     } catch (err) {

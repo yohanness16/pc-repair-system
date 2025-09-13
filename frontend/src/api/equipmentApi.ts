@@ -38,10 +38,10 @@ export const getAllRepairs = async (apiClient: AxiosInstance, ) => {
 
 export const approveOrRejectCreation = async (apiClient: AxiosInstance, equipmentId: any, isApproved: any, rejectionReason: any) => {
   const allRepairs = getAllRepairs(apiClient)
-  const data: [] = allRepairs
-  const specifcRepair = data.filter((rep) => rep.equipmentId === equipmentId)
+  const data: [] = await allRepairs
+  // const specifcRepair = data.filter((rep) => rep.equipmentId === equipmentId)
   const payload = { approved: isApproved, reason: rejectionReason };
-  const response = await apiClient.post(`/Repairs/approve/${requiestId}/`, payload);
+  const response = await apiClient.post(`/Repairs/approve/${equipmentId}/`, payload);
   return response.data;
 };
 
