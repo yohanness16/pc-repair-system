@@ -4,6 +4,7 @@ export interface User {
   role: 'admin' | 'it_staff';
   department: string;
   email: string;
+  access: string;
 }
 
 export interface RepairTicket {

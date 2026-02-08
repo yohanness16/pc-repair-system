@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { useData } from '../context/DataContext';
-import { useAuth } from '../context/AuthContext';
-import { 
-  Users, 
-  Settings, 
-  Shield, 
-  BarChart3, 
-  AlertTriangle, 
+import React, { useEffect, useState } from "react";
+import { useData } from "../context/DataContext";
+import { useAuth } from "../context/AuthContext";
+import {
+  Users,
+  Settings,
+  Shield,
+  BarChart3,
+  AlertTriangle,
   CheckCircle,
   Clock,
   TrendingUp,
@@ -15,40 +15,96 @@ import {
   Activity,
   Eye,
   Edit,
-  Trash2
-} from 'lucide-react';
+  Trash2,
+} from "lucide-react";
+import NewUserModal from "./NewUserModal";
+import { useApiClient } from "../hooks/useApiClient";
+import { getAllUsers } from "../api/userApi";
+import UserDetailsModal from "./UserDetailsModal";
 
 const AdminPanel: React.FC = () => {
   const { tickets, getDashboardStats } = useData();
+  const [users, setUsers] = useState<any>([]);
+  const [selectedUserId, setSelectedUserId] = useState<any>(null);
+
+  // Function to open the modal
+  const handleViewDetails = (userId: number) => {
+    setSelectedUserId(userId);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedUserId(null);
+  };
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('overview');
+  const apiClient = useApiClient();
+  const [activeTab, setActiveTab] = useState("overview");
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
   const stats = getDashboardStats();
 
+  useEffect(() => {
+    const fetchAllUsers = async () => {
+      const allUsers = await getAllUsers(apiClient);
+      setUsers(allUsers);
+    };
+    fetchAllUsers();
+    console.log(users);
+  }, []);
+
   // Only admins can access this panel
-  if (user?.role !== 'admin') {
+  if (user?.role !== "admin") {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <Shield className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900">Access Denied</h3>
-          <p className="text-gray-500">You need administrator privileges to view this page.</p>
+          <p className="text-gray-500">
+            You need administrator privileges to view this page.
+          </p>
         </div>
       </div>
     );
   }
 
   const tabs = [
-    { id: 'overview', label: 'System Overview', icon: BarChart3 },
-    { id: 'users', label: 'User Management', icon: Users },
-    { id: 'tickets', label: 'Ticket Analytics', icon: Activity },
-    { id: 'settings', label: 'System Settings', icon: Settings }
+    { id: "overview", label: "System Overview", icon: BarChart3 },
+    { id: "users", label: "User Management", icon: Users },
+    { id: "tickets", label: "Ticket Analytics", icon: Activity },
+    { id: "settings", label: "System Settings", icon: Settings },
   ];
 
   const mockUsers = [
-    { id: '1', username: 'admin', role: 'admin', department: 'IT Administration', lastLogin: '2024-01-15T10:30:00Z', status: 'active' },
-    { id: '2', username: 'tech1', role: 'it_staff', department: 'IT Support', lastLogin: '2024-01-15T09:15:00Z', status: 'active' },
-    { id: '3', username: 'tech2', role: 'it_staff', department: 'IT Support', lastLogin: '2024-01-14T16:45:00Z', status: 'active' },
-    { id: '4', username: 'tech3', role: 'it_staff', department: 'IT Support', lastLogin: '2024-01-13T14:20:00Z', status: 'inactive' }
+    {
+      id: "1",
+      username: "admin",
+      role: "admin",
+      department: "IT Administration",
+      lastLogin: "2024-01-15T10:30:00Z",
+      status: "active",
+    },
+    {
+      id: "2",
+      username: "tech1",
+      role: "it_staff",
+      department: "IT Support",
+      lastLogin: "2024-01-15T09:15:00Z",
+      status: "active",
+    },
+    {
+      id: "3",
+      username: "tech2",
+      role: "it_staff",
+      department: "IT Support",
+      lastLogin: "2024-01-14T16:45:00Z",
+      status: "active",
+    },
+    {
+      id: "4",
+      username: "tech3",
+      role: "it_staff",
+      department: "IT Support",
+      lastLogin: "2024-01-13T14:20:00Z",
+      status: "inactive",
+    },
   ];
 
   const getTicketsByStatus = () => {
@@ -56,7 +112,7 @@ const AdminPanel: React.FC = () => {
       acc[ticket.status] = (acc[ticket.status] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
-    
+
     return statusCounts;
   };
 
@@ -65,7 +121,7 @@ const AdminPanel: React.FC = () => {
       acc[ticket.priority] = (acc[ticket.priority] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
-    
+
     return priorityCounts;
   };
 
@@ -80,7 +136,9 @@ const AdminPanel: React.FC = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Active Users</p>
-              <p className="text-2xl font-semibold text-gray-900">{mockUsers.filter(u => u.status === 'active').length}</p>
+              <p className="text-2xl font-semibold text-gray-900">
+                {users.filter((u) => u.status === "active").length}
+              </p>
             </div>
           </div>
         </div>
@@ -103,8 +161,12 @@ const AdminPanel: React.FC = () => {
               <AlertTriangle className="w-6 h-6 text-yellow-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Pending Tickets</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.activeTickets}</p>
+              <p className="text-sm font-medium text-gray-600">
+                Pending Tickets
+              </p>
+              <p className="text-2xl font-semibold text-gray-900">
+                {stats.activeTickets}
+              </p>
             </div>
           </div>
         </div>
@@ -116,7 +178,9 @@ const AdminPanel: React.FC = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Devices</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.totalDevices}</p>
+              <p className="text-2xl font-semibold text-gray-900">
+                {stats.totalDevices}
+              </p>
             </div>
           </div>
         </div>
@@ -125,11 +189,15 @@ const AdminPanel: React.FC = () => {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Tickets by Status</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Tickets by Status
+          </h3>
           <div className="space-y-3">
             {Object.entries(getTicketsByStatus()).map(([status, count]) => (
               <div key={status} className="flex items-center justify-between">
-                <span className="text-sm text-gray-600 capitalize">{status.replace('_', ' ')}</span>
+                <span className="text-sm text-gray-600 capitalize">
+                  {status.replace("_", " ")}
+                </span>
                 <div className="flex items-center space-x-2">
                   <div className="w-20 bg-gray-200 rounded-full h-2">
                     <div
@@ -137,7 +205,9 @@ const AdminPanel: React.FC = () => {
                       style={{ width: `${(count / tickets.length) * 100}%` }}
                     ></div>
                   </div>
-                  <span className="text-sm font-medium text-gray-900">{count}</span>
+                  <span className="text-sm font-medium text-gray-900">
+                    {count}
+                  </span>
                 </div>
               </div>
             ))}
@@ -145,11 +215,15 @@ const AdminPanel: React.FC = () => {
         </div>
 
         <div className="card p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Tickets by Priority</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Tickets by Priority
+          </h3>
           <div className="space-y-3">
             {Object.entries(getTicketsByPriority()).map(([priority, count]) => (
               <div key={priority} className="flex items-center justify-between">
-                <span className="text-sm text-gray-600 capitalize">{priority}</span>
+                <span className="text-sm text-gray-600 capitalize">
+                  {priority}
+                </span>
                 <div className="flex items-center space-x-2">
                   <div className="w-20 bg-gray-200 rounded-full h-2">
                     <div
@@ -157,7 +231,9 @@ const AdminPanel: React.FC = () => {
                       style={{ width: `${(count / tickets.length) * 100}%` }}
                     ></div>
                   </div>
-                  <span className="text-sm font-medium text-gray-900">{count}</span>
+                  <span className="text-sm font-medium text-gray-900">
+                    {count}
+                  </span>
                 </div>
               </div>
             ))}
@@ -167,7 +243,9 @@ const AdminPanel: React.FC = () => {
 
       {/* Recent Activity */}
       <div className="card p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent System Activity</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Recent System Activity
+        </h3>
         <div className="space-y-3">
           <div className="flex items-center space-x-3 text-sm">
             <div className="bg-green-100 p-1 rounded-full">
@@ -199,7 +277,10 @@ const AdminPanel: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold text-gray-900">User Management</h3>
-        <button className="btn-primary flex items-center space-x-2">
+        <button
+          className="btn-primary flex items-center space-x-2"
+          onClick={() => setShowAddUserModal(true)}
+        >
           <UserPlus className="w-4 h-4" />
           <span>Add User</span>
         </button>
@@ -230,7 +311,7 @@ const AdminPanel: React.FC = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {mockUsers.map((user) => (
+            {users.map((user) => (
               <tr key={user.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
@@ -238,13 +319,15 @@ const AdminPanel: React.FC = () => {
                       <Users className="w-4 h-4 text-blue-600" />
                     </div>
                     <div>
-                      <div className="text-sm font-medium text-gray-900">{user.username}</div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {user.username}
+                      </div>
                     </div>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    {user.role.replace('_', ' ')}
+                    {user.role.replace("_", " ")}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -254,17 +337,25 @@ const AdminPanel: React.FC = () => {
                   {new Date(user.lastLogin).toLocaleDateString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    user.status === 'active' 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-red-100 text-red-800'
-                  }`}>
+                  <span
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      user.status === "active"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-red-100 text-red-800"
+                    }`}
+                  >
                     {user.status}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex items-center justify-end space-x-2">
-                    <button className="text-blue-600 hover:text-blue-900">
+                    <button
+                      className="text-blue-600 hover:text-blue-900"
+                      onClick={() => {
+                        handleViewDetails(user.id);
+                        console.log(user.id);
+                      }}
+                    >
                       <Eye className="w-4 h-4" />
                     </button>
                     <button className="text-gray-600 hover:text-gray-900">
@@ -280,6 +371,14 @@ const AdminPanel: React.FC = () => {
           </tbody>
         </table>
       </div>
+      {showAddUserModal && (
+        <>
+          <NewUserModal onClose={() => setShowAddUserModal(false)} />
+        </>
+      )}
+      {selectedUserId && (
+        <UserDetailsModal userId={selectedUserId} onClose={handleCloseModal} />
+      )}
     </div>
   );
 
@@ -288,7 +387,9 @@ const AdminPanel: React.FC = () => {
       {/* Header */}
       <div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Admin Panel</h2>
-        <p className="text-gray-600">System administration and management tools</p>
+        <p className="text-gray-600">
+          System administration and management tools
+        </p>
       </div>
 
       {/* Tabs */}
@@ -302,8 +403,8 @@ const AdminPanel: React.FC = () => {
                 onClick={() => setActiveTab(tab.id)}
                 className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 transition-colors duration-200 ${
                   activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? "border-blue-500 text-blue-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -316,19 +417,33 @@ const AdminPanel: React.FC = () => {
 
       {/* Tab Content */}
       <div className="fade-in">
-        {activeTab === 'overview' && renderOverview()}
-        {activeTab === 'users' && renderUserManagement()}
-        {activeTab === 'tickets' && (
+        {activeTab === "overview" && renderOverview()}
+        {activeTab === "users" && renderUserManagement()}
+        {activeTab === "tickets" && (
           <div className="card p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Ticket Analytics</h3>
-            <p className="text-gray-600">Advanced ticket analytics and reporting will be displayed here.</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Ticket Analytics
+            </h3>
+            <p className="text-gray-600">
+              Advanced ticket analytics and reporting will be displayed here.
+            </p>
           </div>
         )}
-        {activeTab === 'settings' && (
+        {activeTab === "settings" && (
           <div className="card p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">System Settings</h3>
-            <p className="text-gray-600">System configuration and settings will be displayed here.</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              System Settings
+            </h3>
+            <p className="text-gray-600">
+              System configuration and settings will be displayed here.
+            </p>
           </div>
+        )}
+        {selectedUserId && (
+          <UserDetailsModal
+            userId={selectedUserId}
+            onClose={handleCloseModal}
+          />
         )}
       </div>
     </div>

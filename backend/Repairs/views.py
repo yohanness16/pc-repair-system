@@ -19,6 +19,11 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from django.template.loader import render_to_string
 from weasyprint import HTML
+import os
+from django.conf import settings
+from django.db import IntegrityError
+from rest_framework.exceptions import APIException
+
 
 
 class PartListCreateView(generics.ListCreateAPIView):
@@ -46,20 +51,92 @@ class RepairRequestCreateView(generics.CreateAPIView):
     queryset = Repair.objects.all()
     serializer_class = RepairCreateSerializer
     permission_classes = [permissions.IsAuthenticated, IsStaffOrAdmin]
+
     @swagger_auto_schema(
         request_body=RepairCreateSerializer,
-        responses={201: RepairCreateSerializer , 400: 'Bad Request'}
+        responses={201: RepairCreateSerializer, 400: 'Bad Request'}
     )
-
-
     def perform_create(self, serializer):
-        serializer.save()
-    
+        try:
+            serializer.save()
+        except IntegrityError as e:
+            raise APIException(f"Failed to create repair request: {str(e)}")
+
+
+class RepairRequestListView(generics.ListAPIView):
+    serializer_class = RepairCreateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # ✅ Fix: Swagger runs without a logged-in user (AnonymousUser),
+        # so short-circuit during schema generation
+        if getattr(self, 'swagger_fake_view', False):
+            return Repair.objects.none()
+
+        user = self.request.user
+        if user.is_superuser or user.is_staff:  # Admin → all
+            return Repair.objects.all().order_by('-created_at')
+        return Repair.objects.filter(staff=user).order_by('-created_at')
+
+    @swagger_auto_schema(
+        operation_description="Get repair requests. Admins see all, staff see only their own.",
+        responses={
+            200: RepairCreateSerializer(many=True),
+            403: "Forbidden"
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+
+
+class RepairRequestDetailView(generics.RetrieveAPIView):
+    queryset = Repair.objects.all()
+    serializer_class = RepairCreateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Repair.objects.none()
+
+        user = self.request.user
+        if user.is_superuser or user.is_staff:
+            return Repair.objects.all()
+        return Repair.objects.filter(staff=user)
+
+    @swagger_auto_schema(
+        operation_description="Retrieve a single repair request. Admins can access all, staff can only access their own.",
+        responses={200: RepairCreateSerializer, 403: "Forbidden", 404: "Not Found"}
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+
+
 class RepairApprovalView(generics.UpdateAPIView):
     queryset = Repair.objects.all()
     serializer_class = RepairApprovalSerializer
     permission_classes = [permissions.IsAuthenticated, IsAdmin]
     lookup_field = 'pk'
+class AssignedRepairsView(generics.ListAPIView):
+    serializer_class = RepairHistorySerializer
+    permission_classes = [permissions.IsAuthenticated, IsAssignedRepairStaff]
+
+    def get_queryset(self):
+        user = self.request.user
+        if not hasattr(user, "staff"):
+            raise APIException("You are not registered as a staff member.")
+        return Repair.objects.filter(repair_staff=user.staff).order_by('-created_at')
+
+    @swagger_auto_schema(
+        operation_description="Get all repairs assigned to the logged-in staff",
+        responses={200: RepairHistorySerializer(many=True), 403: "Forbidden"}
+    )
+    def get(self, request, *args, **kwargs):
+        try:
+            return super().get(request, *args, **kwargs)
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
 
 class CompleteRepairView(generics.UpdateAPIView):
     queryset = Repair.objects.all()
@@ -241,6 +318,7 @@ class AdminRepairStatsView(APIView):
 
 class EquipmentRepairPDFView(APIView):
     permission_classes = [IsAuthenticated]
+
     @swagger_auto_schema(
         operation_description="Download a PDF report of all completed repairs for a specific equipment",
         manual_parameters=[
@@ -253,7 +331,6 @@ class EquipmentRepairPDFView(APIView):
         ],
         responses={200: 'PDF file of equipment repair history', 404: 'Equipment not found'}
     )
-
     def get(self, request, equipment_id):
         equipment = get_object_or_404(Equipment, pk=equipment_id)
         repairs = equipment.repairs.filter(status='completed').order_by('-completed_at')
@@ -263,12 +340,16 @@ class EquipmentRepairPDFView(APIView):
             'repairs': repairs
         })
 
-        html = HTML(string=html_string)
-        pdf = html.write_pdf()
+        try:
+            html = HTML(string=html_string)
+            pdf = html.write_pdf()
+        except Exception as e:
+            return Response({"error": f"PDF generation failed: {str(e)}"}, status=500)
 
         response = HttpResponse(pdf, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="equipment_{equipment.tag_number}_repairs.pdf"'
         return response
+
 
 
 class RepairReceiptPDFView(APIView):
@@ -293,9 +374,47 @@ class RepairReceiptPDFView(APIView):
             'repair': repair
         })
 
-        html = HTML(string=html_string)
-        pdf = html.write_pdf()
+        try:
+            html = HTML(string=html_string)
+            pdf = html.write_pdf()
+        except Exception as e:
+            return Response({"error": f"PDF generation failed: {str(e)}"}, status=500)
 
         response = HttpResponse(pdf, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="repair_{repair.id}_receipt.pdf"'
+        return response
+
+        
+class ApprovedRepairLabelView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_description="Download a label/report for a specific approved repair",
+        manual_parameters=[
+            openapi.Parameter(
+                'repair_id', openapi.IN_PATH,
+                description="ID of the approved repair",
+                type=openapi.TYPE_INTEGER,
+                required=True
+            )
+        ],
+        responses={200: 'HTML/PDF label of approved repair', 404: 'Repair not found or not approved'}
+    )
+    def get(self, request, repair_id):
+        repair = get_object_or_404(Repair, pk=repair_id, status="approved")
+
+        html_string = render_to_string('approved_repair_label.html', { 
+            'repair': repair,
+            'equipment': repair.equipment,
+            'repair_staff': repair.repair_staff
+        })
+
+        try:
+            html = HTML(string=html_string)
+            pdf = html.write_pdf()
+        except Exception as e:
+            return Response({"error": f"PDF generation failed: {str(e)}"}, status=500)
+
+        response = HttpResponse(pdf, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="repair_{repair.id}_label.pdf"'
         return response

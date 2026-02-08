@@ -1,14 +1,20 @@
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
-from .serializers import MyTokenObtainPairSerializer , RegisterSerializer , UpdateProfileSerializer , ForgotPasswordSerializer , RequestPasswordResetSerializer , VerifyResetCodeSerializer
+from .serializers import MyTokenObtainPairSerializer , RegisterSerializer , UpdateProfileSerializer , ForgotPasswordSerializer , RequestPasswordResetSerializer 
+from .serializers import VerifyResetCodeSerializer
+from Repairs.serializers import RepairHistorySerializer
 from django.db.utils import IntegrityError
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
-from .models import Staff
+from rest_framework import generics
+from .models import Staff 
+from Repairs.models import Repair
 from rest_framework.permissions import IsAuthenticated
+from .permissions import IsAdmin
 from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 
  
@@ -125,3 +131,65 @@ class VerifyResetCodeView(APIView):
             return Response({'detail': 'Password reset successfully.'}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class StaffListView(generics.ListAPIView):
+    queryset = Staff.objects.all()
+    serializer_class = RegisterSerializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    @swagger_auto_schema(
+        operation_description="List all staff (Admin only)",
+        responses={
+            200: RegisterSerializer(many=True),
+            403: 'Forbidden'
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+class GetStaffByIdView(generics.RetrieveAPIView):
+    queryset = Staff.objects.all()
+    serializer_class = RegisterSerializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    @swagger_auto_schema(
+        operation_description="Get staff details by ID (Admin only)",
+        manual_parameters=[
+            openapi.Parameter(
+                'id', openapi.IN_PATH,
+                description="ID of the staff",
+                type=openapi.TYPE_INTEGER,
+                required=True
+            )
+        ],
+        responses={
+            200: RegisterSerializer,
+            403: 'Forbidden',
+            404: 'Staff not found'
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+class StaffRepairProgressView(generics.ListAPIView):
+    serializer_class = RepairHistorySerializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    @swagger_auto_schema(
+        operation_description="Get all repairs assigned to a specific staff member (Admin only)",
+        manual_parameters=[
+            openapi.Parameter(
+                'staff_id', openapi.IN_PATH,
+                description="ID of the staff",
+                type=openapi.TYPE_INTEGER,
+                required=True
+            )
+        ],
+        responses={
+            200: RepairHistorySerializer(many=True),
+            403: 'Forbidden',
+            404: 'Staff not found'
+        }
+    )
+    def get_queryset(self):
+        staff_id = self.kwargs.get('staff_id')
+        return Repair.objects.filter(repair_staff_id=staff_id).order_by('-created_at')

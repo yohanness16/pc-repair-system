@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import RegisterView ,LogoutView , UpdateProfileView , MyTokenObtainPairView , PingView, ForgotPasswordView , RequestPasswordResetView, VerifyResetCodeView
+from .views import RegisterView ,LogoutView , UpdateProfileView , MyTokenObtainPairView , PingView, ForgotPasswordView , RequestPasswordResetView, VerifyResetCodeView , StaffListView , StaffRepairProgressView , GetStaffByIdView
 from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
@@ -12,6 +12,10 @@ urlpatterns = [
     path('ping/', PingView.as_view(), name='ping'),
     path('request-reset/', RequestPasswordResetView.as_view(), name='request-reset'),
     path('verify-reset/', VerifyResetCodeView.as_view(), name='verify-reset'),
+    path('list/', StaffListView.as_view(), name='staff-list'),
+    path('list/<int:pk>/', GetStaffByIdView.as_view(), name='get-staff-by-id'),
+    path('<int:staff_id>/repairs/', StaffRepairProgressView.as_view(), name='staff-repair-progress'),
+
 
 ]
    
