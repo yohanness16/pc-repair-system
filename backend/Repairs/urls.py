@@ -1,10 +1,11 @@
 
 from django.urls import path
-from .views import RepairRequestCreateView, RepairApprovalView ,CompleteRepairView , PartDetailView, PartListCreateView ,EquipmentRepairHistoryView , AdminRepairStatsView , EquipmentRepairPDFView , RepairReceiptPDFView
+from .views import RepairRequestCreateView, RepairApprovalView ,CompleteRepairView , PartDetailView, PartListCreateView ,EquipmentRepairHistoryView , AdminRepairStatsView , EquipmentRepairPDFView , RepairReceiptPDFView, AdminRepairAssignmentView
 
 urlpatterns = [
     path('request/', RepairRequestCreateView.as_view(), name='repair-request'),
     path('approve/<int:pk>/', RepairApprovalView.as_view(), name='repair-approve'),
+    path('assign/<int:pk>/', AdminRepairAssignmentView.as_view(), name='repair-assign'),
     path('complete/<int:pk>/', CompleteRepairView.as_view(), name='repair-complete'),
     path('parts/<int:pk>/', PartDetailView.as_view(), name='part-detail'),
     path('parts/', PartListCreateView.as_view(), name='part-list-create'),

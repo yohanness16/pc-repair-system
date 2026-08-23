@@ -4,41 +4,55 @@
     <meta charset="UTF-8">
     <title>Repair Receipt - {{ repair.id }}</title>
     <style>
-        body { font-family: Arial, sans-serif; font-size: 12px; }
-        h2 { text-align: center; }
-        .details { margin: 20px 0; }
-        .details p { margin: 4px 0; }
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 14px; color: #333; line-height: 1.6; }
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; border-bottom: 2px solid #0056b3; padding-bottom: 10px; margin-bottom: 20px; }
+        .header h1 { color: #0056b3; margin: 0 0 10px 0; font-size: 24px; text-transform: uppercase; letter-spacing: 1px; }
+        .header h2 { color: #555; margin: 0; font-size: 18px; font-weight: normal; }
+        .details { margin: 20px 0; background-color: #f9f9f9; padding: 15px; border-radius: 5px; border: 1px solid #ddd; }
+        .details-grid { display: table; width: 100%; }
+        .details-row { display: table-row; }
+        .details-cell { display: table-cell; padding: 6px; }
+        .details-label { font-weight: bold; width: 150px; color: #555; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #333; padding: 8px; text-align: left; }
-        th { background-color: #f0f0f0; }
-        .signature { margin-top: 50px; width: 100%; display: flex; justify-content: space-between; }
-        .signature div { width: 40%; text-align: center; }
-        .signature-line { border-top: 1px solid #000; margin-top: 50px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #0056b3; color: white; text-transform: uppercase; font-size: 12px; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .signature-container { margin-top: 60px; width: 100%; display: table; }
+        .signature-box { display: table-cell; width: 45%; text-align: center; vertical-align: bottom; }
+        .signature-spacer { display: table-cell; width: 10%; }
+        .signature-line { border-top: 1px solid #333; margin-top: 40px; padding-top: 10px; font-weight: bold; color: #555; }
+        .footer { margin-top: 30px; text-align: center; font-size: 11px; color: #888; border-top: 1px solid #ddd; padding-top: 10px; }
     </style>
 </head>
 <body>
-    <h1>Commercial Bank Of ethiopia</h1>
-    <h2>pc-Repair Receipt</h2>
+    <div class="container">
+        <div class="header">
+            <h1>Commercial Bank of Ethiopia</h1>
+            <h2>PC Repair Service Receipt</h2>
+        </div>
 
-    <div class="details">
-        <p><strong>Receipt ID:</strong> {{ repair.id }}</p>
-        <p><strong>Equipment:</strong> {{ repair.equipment.tag_number }} ({{ repair.equipment.serial_number }})</p>
-        <p><strong>Branch:</strong> {{ repair.equipment.branch.name }}</p>
-        <p><strong>Repair Staff:</strong> 
-            {% if repair.repair_staff %}
-                {{ repair.repair_staff.first_name }} {{ repair.repair_staff.last_name }}
-            {% else %}
-                -
-            {% endif %}
-        </p>
-        <p><strong>Status:</strong> {{ repair.status }}</p>
-        <p><strong>Remark:</strong> {{ repair.remark|default:"-" }}</p>
-        <p><strong>Report:</strong> {{ repair.report|default:"-" }}</p>
-        <p><strong>Completed At:</strong> {{ repair.completed_at|date:"Y-m-d H:i" }}</p>
-        <p><strong>Created At:</strong> {{ repair.created_at|date:"Y-m-d H:i" }}</p>
-    </div>
+        <div class="details">
+            <div class="details-grid">
+                <div class="details-row"><div class="details-cell details-label">Receipt ID:</div><div class="details-cell">#{{ repair.id }}</div></div>
+                <div class="details-row"><div class="details-cell details-label">Equipment:</div><div class="details-cell">{{ repair.equipment.item_category }} - Tag: {{ repair.equipment.tag_number }} (SN: {{ repair.equipment.serial_number }})</div></div>
+                <div class="details-row"><div class="details-cell details-label">Branch:</div><div class="details-cell">{{ repair.equipment.branch.name }}</div></div>
+                <div class="details-row"><div class="details-cell details-label">Repair Staff:</div><div class="details-cell">
+                    {% if repair.repair_staff %}
+                        {{ repair.repair_staff.first_name }} {{ repair.repair_staff.last_name }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </div></div>
+                <div class="details-row"><div class="details-cell details-label">Status:</div><div class="details-cell" style="text-transform: capitalize; font-weight: bold; color: #28a745;">{{ repair.status }}</div></div>
+                <div class="details-row"><div class="details-cell details-label">Issue Remark:</div><div class="details-cell">{{ repair.remark|default:"None" }}</div></div>
+                <div class="details-row"><div class="details-cell details-label">Repair Report:</div><div class="details-cell">{{ repair.report|default:"None" }}</div></div>
+                <div class="details-row"><div class="details-cell details-label">Request Date:</div><div class="details-cell">{{ repair.created_at|date:"F d, Y H:i" }}</div></div>
+                <div class="details-row"><div class="details-cell details-label">Completion Date:</div><div class="details-cell">{{ repair.completed_at|date:"F d, Y H:i" }}</div></div>
+            </div>
+        </div>
 
-    <h3>Parts Used</h3>
+        <h3>Replaced / Used Parts</h3>
     <table>
         <thead>
             <tr>
@@ -58,14 +72,18 @@
         </tbody>
     </table>
 
-    <div class="signature">
-        <div>
-            <div class="signature-line"></div>
-            <p>Repair Staff Signature</p>
+        <div class="signature-container">
+            <div class="signature-box">
+                <div class="signature-line">Repair Staff Signature</div>
+            </div>
+            <div class="signature-spacer"></div>
+            <div class="signature-box">
+                <div class="signature-line">Authorized Admin Signature</div>
+            </div>
         </div>
-        <div>
-            <div class="signature-line"></div>
-            <p>Admin Signature</p>
+
+        <div class="footer">
+            Generated by CBE PC Repair System on {% now "F d, Y H:i" %}
         </div>
     </div>
 </body>

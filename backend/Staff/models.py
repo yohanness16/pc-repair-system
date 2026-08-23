@@ -6,10 +6,6 @@ from datetime import timedelta
 
 
 
-def email_validator(value):
-    if not value.endswith('@gmail.com'):
-        raise ValidationError("Invalid email. It must end with '@gmail.et'")
-
 class Staff(AbstractUser):
     ROLE_CHOICES = [
         ('admin', 'Admin'),
@@ -18,7 +14,7 @@ class Staff(AbstractUser):
 
 
     
-    email = models.EmailField(unique=True, validators=[email_validator])
+    email = models.EmailField(unique=True)
     role = models.CharField(max_length=25, choices=ROLE_CHOICES)
     profile_photo = models.ImageField(
         upload_to='staff_photos/',

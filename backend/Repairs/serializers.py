@@ -39,23 +39,42 @@ class RepairApprovalSerializer(serializers.ModelSerializer):
         fields = ['status', 'repair_staff_id']
 
     def validate_status(self, value):
-        if value not in ['approved', 'rejected']:
-            raise serializers.ValidationError("Status must be either 'approved' or 'rejected'")
+        if value not in ['approved', 'rejected', 'under_repair', 'pending']:
+            raise serializers.ValidationError("Status must be either 'approved', 'rejected', 'under_repair', or 'pending'")
         return value
 
     def update(self, instance, validated_data):
-        instance.status = validated_data['status']
+        if 'status' in validated_data:
+            instance.status = validated_data['status']
 
-        if instance.status == 'approved':
-            instance.approved_at = timezone.now()
+            if instance.status == 'approved' and not instance.approved_at:
+                instance.approved_at = timezone.now()
 
-            repair_staff_id = validated_data.get('repair_staff_id')
-            if repair_staff_id:
-                try:
-                    staff = Staff.objects.get(id=repair_staff_id)
-                    instance.repair_staff = staff
-                except Staff.DoesNotExist:
-                    raise serializers.ValidationError({'repair_staff_id': 'Staff not found'})
+        repair_staff_id = validated_data.get('repair_staff_id')
+        if repair_staff_id is not None:
+            try:
+                staff = Staff.objects.get(id=repair_staff_id)
+                instance.repair_staff = staff
+            except Staff.DoesNotExist:
+                raise serializers.ValidationError({'repair_staff_id': 'Staff not found'})
+
+        instance.save()
+        return instance
+
+class AdminRepairAssignmentSerializer(serializers.ModelSerializer):
+    repair_staff_id = serializers.IntegerField(write_only=True)
+
+    class Meta:
+        model = Repair
+        fields = ['repair_staff_id']
+
+    def update(self, instance, validated_data):
+        repair_staff_id = validated_data.get('repair_staff_id')
+        try:
+            staff = Staff.objects.get(id=repair_staff_id)
+            instance.repair_staff = staff
+        except Staff.DoesNotExist:
+            raise serializers.ValidationError({'repair_staff_id': 'Staff not found'})
 
         instance.save()
         return instance
