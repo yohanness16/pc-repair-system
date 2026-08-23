@@ -3,7 +3,7 @@ from rest_framework import generics, permissions
 from django.http import HttpResponse
 from .models import Repair , Part , RepairPart
 from Equipments.models import Equipment
-from .serializers import RepairCreateSerializer , PartSerializer , CompleteRepairSerializer , RepairHistorySerializer , RepairApprovalSerializer
+from .serializers import RepairCreateSerializer , PartSerializer , CompleteRepairSerializer , RepairHistorySerializer , RepairApprovalSerializer, AdminRepairAssignmentSerializer
 from Equipments.permissions import IsStaffOrAdmin
 from Repairs.permissions import IsAdmin , IsAssignedRepairStaff
 from rest_framework import viewsets
@@ -58,6 +58,12 @@ class RepairRequestCreateView(generics.CreateAPIView):
 class RepairApprovalView(generics.UpdateAPIView):
     queryset = Repair.objects.all()
     serializer_class = RepairApprovalSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+    lookup_field = 'pk'
+
+class AdminRepairAssignmentView(generics.UpdateAPIView):
+    queryset = Repair.objects.all()
+    serializer_class = AdminRepairAssignmentSerializer
     permission_classes = [permissions.IsAuthenticated, IsAdmin]
     lookup_field = 'pk'
 
