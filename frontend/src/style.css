@@ -1,0 +1,84 @@
+:root {
+  /* Palette */
+  --ink: #14171A;
+  --ink-muted: #626B74;
+  --paper: #EFEEE8; /* Cooler/greyer off-white */
+  --surface: #FFFFFF;
+  --line: #DCD8CE;
+  --navy: #1E3A5F;
+  --amber: #C9820A;
+  --success: #2E7D4F;
+  --danger: #B8412E;
+
+  /* Typography */
+  --font-body: 'Work Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  
+  /* Radii & Shadows */
+  --radius: 6px;
+  --shadow-sm: 0 1px 2px rgba(20,23,26,0.06), 0 1px 1px rgba(20,23,26,0.04);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink);
+  background-color: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-weight: 500;
+}
+
+a {
+  color: var(--navy);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  font-family: inherit;
+}
+
+input, textarea, select {
+  font-family: inherit;
+  font-size: 13px;
+}
+
+/* Layout Utilities */
+.page-container {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.page-title {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.card {
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+}
